@@ -1,32 +1,32 @@
 import React from 'react';
-import { StyleSheet, View, Text, ViewStyle } from 'react-native';
+import { StyleSheet, View, ViewStyle } from 'react-native';
 import { PALMSIGHT_MOBILE_THEME } from '../theme/tokens';
+
+export const TarotCorners: React.FC = () => {
+  return (
+    <>
+      <View style={[styles.cornerBracket, styles.cornerTL]} pointerEvents="none" />
+      <View style={[styles.cornerBracket, styles.cornerTR]} pointerEvents="none" />
+      <View style={[styles.cornerBracket, styles.cornerBL]} pointerEvents="none" />
+      <View style={[styles.cornerBracket, styles.cornerBR]} pointerEvents="none" />
+    </>
+  );
+};
 
 interface TarotCardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
-  goldBorder?: boolean;
+  style?: ViewStyle | ViewStyle[];
+  interactive?: boolean;
 }
 
 export const TarotCard: React.FC<TarotCardProps> = ({
   children,
   style,
-  goldBorder = true,
+  interactive = false,
 }) => {
   return (
-    <View
-      style={[
-        styles.card,
-        goldBorder && styles.goldBorder,
-        style,
-      ]}
-    >
-      {/* 4 Mystic Tarot Corners */}
-      <Text style={[styles.corner, styles.cornerTL]}>✦</Text>
-      <Text style={[styles.corner, styles.cornerTR]}>✦</Text>
-      <Text style={[styles.corner, styles.cornerBL]}>✦</Text>
-      <Text style={[styles.corner, styles.cornerBR]}>✦</Text>
-
+    <View style={[styles.card, interactive && styles.cardInteractive, style]}>
+      <TarotCorners />
       {children}
     </View>
   );
@@ -36,40 +36,50 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
     borderRadius: PALMSIGHT_MOBILE_THEME.radius.lg,
-    padding: 16,
+    padding: 18,
     position: 'relative',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
+    borderColor: 'rgba(212, 175, 55, 0.28)',
+    shadowColor: '#04020a',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 4,
   },
-  goldBorder: {
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairlineStrong,
-    shadowColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 3,
+  cardInteractive: {
+    borderColor: 'rgba(212, 175, 55, 0.38)',
   },
-  corner: {
+  cornerBracket: {
     position: 'absolute',
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
-    fontSize: 10,
-    opacity: 0.8,
+    width: 14,
+    height: 14,
+    borderColor: 'rgba(212, 175, 55, 0.65)',
   },
   cornerTL: {
-    top: 6,
+    top: 8,
     left: 8,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
   },
   cornerTR: {
-    top: 6,
+    top: 8,
     right: 8,
+    borderTopWidth: 1.5,
+    borderRightWidth: 1.5,
   },
   cornerBL: {
-    bottom: 6,
+    bottom: 8,
     left: 8,
+    borderBottomWidth: 1.5,
+    borderLeftWidth: 1.5,
   },
   cornerBR: {
-    bottom: 6,
+    bottom: 8,
     right: 8,
+    borderBottomWidth: 1.5,
+    borderRightWidth: 1.5,
   },
 });
+
+export default TarotCard;

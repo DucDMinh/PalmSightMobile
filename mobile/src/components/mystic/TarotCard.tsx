@@ -1,3 +1,1 @@
-export * from '../TarotCard';
-import { TarotCard } from '../TarotCard';
-export default TarotCard;
+export { TarotCard, TarotCorners, default } from '../TarotCard';

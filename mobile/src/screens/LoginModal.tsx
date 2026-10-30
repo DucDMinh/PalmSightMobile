@@ -104,7 +104,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 value={identifier}
                 onChangeText={setIdentifier}
                 placeholder="email@example.com hoặc username"
-                placeholderTextColor={PALMSIGHT_MOBILE_THEME.colors.mute}
+                placeholderTextColor="#9e8cb8"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -121,7 +121,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
-                placeholderTextColor={PALMSIGHT_MOBILE_THEME.colors.mute}
+                placeholderTextColor="#9e8cb8"
                 secureTextEntry
               />
 
@@ -133,9 +133,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 activeOpacity={0.85}
               >
                 {submitting ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color="#0b0716" />
                 ) : (
-                  <Text style={styles.submitBtnText}>[ ĐĂNG NHẬP ]</Text>
+                  <Text style={styles.submitBtnText}>Đăng nhập</Text>
                 )}
               </TouchableOpacity>
 
@@ -171,11 +171,15 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   card: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
+    backgroundColor: '#1b1233',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     padding: 24,
     paddingBottom: 40,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
   },
   headerRow: {
     flexDirection: 'row',
@@ -185,94 +189,94 @@ const styles = StyleSheet.create({
   },
   badgeTop: {
     fontSize: 10,
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    color: '#d4af37',
     letterSpacing: 2,
-    fontWeight: '700',
+    fontWeight: '800',
     marginBottom: 4,
   },
   title: {
     fontSize: 26,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontWeight: '800',
+    color: '#f7e7b4',
   },
   closeBtn: {
     padding: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   closeBtnText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: '#9e8cb8',
+    fontSize: 18,
+    fontWeight: '700',
   },
   subtitle: {
     fontSize: 13,
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
-    marginBottom: 18,
+    color: '#d8cbe8',
+    marginBottom: 16,
   },
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldDim,
+    color: '#f7e7b4',
     marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   passwordHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 10,
   },
   forgotLink: {
     fontSize: 12,
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    textDecorationLine: 'underline',
+    color: '#d4af37',
+    fontWeight: '600',
   },
   input: {
-    height: 48,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
+    backgroundColor: 'rgba(11, 7, 22, 0.75)',
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    paddingHorizontal: 14,
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
-    fontSize: 15,
-    marginBottom: 16,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#f7e7b4',
+    fontSize: 14,
+    marginBottom: 12,
   },
   submitBtn: {
-    height: 48,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    backgroundColor: '#d4af37',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 243, 209, 0.65)',
+    borderRadius: 9999,
+    paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    shadowColor: PALMSIGHT_MOBILE_THEME.colors.gold,
+    marginTop: 10,
+    marginBottom: 16,
+    shadowColor: '#d4af37',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
     elevation: 4,
   },
   submitBtnText: {
-    color: '#120a21',
-    fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 1.5,
+    color: '#0b0716',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 18,
+    marginTop: 20,
   },
   footerText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+    color: '#9e8cb8',
     fontSize: 13,
   },
   registerLink: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontWeight: '700',
+    color: '#f7e7b4',
     fontSize: 13,
+    fontWeight: '700',
     textDecorationLine: 'underline',
   },
 });

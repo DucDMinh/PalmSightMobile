@@ -97,7 +97,7 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
         activeOpacity={0.85}
       >
         {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator size="small" color="#f7e7b4" />
         ) : (
           <View style={styles.contentRow}>
             {/* Custom Google 'G' Icon */}
@@ -122,15 +122,15 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#1f1638',
-    borderColor: 'rgba(212, 175, 55, 0.4)',
+    backgroundColor: 'rgba(27, 18, 51, 0.85)',
+    borderColor: 'rgba(212, 175, 55, 0.45)',
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    height: 48,
+    borderRadius: 9999,
+    height: 46,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
-    marginVertical: 6,
+    marginVertical: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -143,22 +143,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   googleIconBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
   googleLetter: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
     color: '#4285F4',
   },
   buttonText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
-    fontSize: 15,
+    color: '#f5e6c8',
+    fontSize: 14,
     fontWeight: '600',
     letterSpacing: 0.2,
   },

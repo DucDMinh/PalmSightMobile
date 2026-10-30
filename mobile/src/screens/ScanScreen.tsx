@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -24,7 +24,7 @@ import { TarotCard } from '../components/TarotCard';
 import { PALMSIGHT_MOBILE_THEME } from '../theme/tokens';
 import readingsService from '../services/readingsService';
 import { useAuth } from '../providers/AuthenticationProvider';
-import { showError, showSuccess } from '../helpers/toast';
+import { showError } from '../helpers/toast';
 import { CACHED_KEYS } from '../consts/cachedKeys';
 
 interface ScanScreenProps {
@@ -40,8 +40,13 @@ const SCHOOL_SYMBOLS: Record<ReadingSchool, string> = {
   [ReadingSchool.VEDIC]: '✦',
 };
 
+const ANALYZING_MESSAGES = [
+  'Đang khởi tạo linh thức thị giác AI...',
+  'Đang thấu thị đường chỉ và các gò bàn tay...',
+  'Đang trích xuất cổ thư và soạn bài luận giải...',
+];
+
 export const ScanScreen: React.FC<ScanScreenProps> = ({
-  onGoHistory,
   onGoWallet,
   onGoReadingDetail,
   onGoGuestPreview,
@@ -187,13 +192,8 @@ export const ScanScreen: React.FC<ScanScreenProps> = ({
     ? READING_SCHOOLS[school].sections.length + LIFE_ASPECTS.length
     : selectedSections.length + selectedAspects.length;
 
-  // Media library pick
+  // Gallery Picker
   const handlePickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Quyền truy cập', 'Vui lòng cấp quyền truy cập thư viện ảnh.');
-      return;
-    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -319,50 +319,39 @@ export const ScanScreen: React.FC<ScanScreenProps> = ({
         if (latest.status === ReadingStatus.DONE) {
           if (pollingRef.current) clearInterval(pollingRef.current);
           setAnalyzing(false);
-          refreshProfile();
           onGoReadingDetail(latest);
         } else if (latest.status === ReadingStatus.REJECTED) {
           if (pollingRef.current) clearInterval(pollingRef.current);
           setAnalyzing(false);
           setRejectReason(latest.rejectReason || 'Ảnh không rõ nét hoặc không phải lòng bàn tay.');
-        } else if (latest.status === ReadingStatus.FAILED) {
+        } else if (attempts > 30) {
           if (pollingRef.current) clearInterval(pollingRef.current);
           setAnalyzing(false);
-          showError('AI không thể hoàn tất bài đọc lúc này. Credits đã được hoàn lại.');
+          showError('Quá thời gian phân tích. Vui lòng kiểm tra lại trong Sổ Thiên Mệnh.');
         }
       } catch {
-        // Network flutter; keep polling
-      }
-
-      if (attempts >= 25) {
         if (pollingRef.current) clearInterval(pollingRef.current);
         setAnalyzing(false);
-        showError('Hệ thống đang tải dữ liệu chậm. Bạn có thể kiểm tra kết quả tại Lịch sử sau ít phút.');
+        showError('Không thể kiểm tra trạng thái quẻ bói.');
       }
-    }, 2000);
+    }, 2500);
   };
 
-  const analyzingMessages = [
-    '🔮 Định vị & chuẩn hóa giải phẫu lòng bàn tay...',
-    '✨ Trích xuất đặc trưng các đường chỉ chính & gò hành tinh...',
-    '📜 Trí tuệ nhân tạo đang luận giải bài bói theo trường phái...',
-  ];
-
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
       {analyzing ? (
         /* Analyzing Screen */
-        <View style={styles.analyzingBox}>
+        <View style={styles.analyzingWrapper}>
           <TarotCard style={styles.analyzingCard}>
-            <View style={styles.pulseContainer}>
-              <ActivityIndicator
-                size="large"
-                color={PALMSIGHT_MOBILE_THEME.colors.gold}
-              />
+            <View style={styles.oracleHalo}>
+              <ActivityIndicator size="large" color="#d4af37" />
             </View>
             <Text style={styles.analyzingTitle}>ĐANG KHAI QUẺ THIÊN MỆNH</Text>
             <Text style={styles.analyzingDesc}>
-              {analyzingMessages[analyzingStep]}
+              {ANALYZING_MESSAGES[analyzingStep]}
             </Text>
             <Text style={styles.analyzingTip}>
               Quá trình phân tích chuyên sâu mất khoảng 10–25 giây. Vui lòng giữ màn hình sáng.
@@ -372,273 +361,357 @@ export const ScanScreen: React.FC<ScanScreenProps> = ({
       ) : (
         /* Scan Flow Form */
         <View>
-          {/* Header */}
-          <View style={styles.headerTitleBox}>
-            <Text style={styles.badgeTop}>
-              ✦ {isLogged ? 'KHAI QUẺ MỚI (−1 CREDIT)' : 'QUẺ BÓI TRẢI NGHIỆM MIỄN PHÍ'}
-            </Text>
-            <Text style={styles.mainTitle}>Khám Phá Vận Mệnh</Text>
-            <Text style={styles.mainDesc}>
-              Khai mở thông điệp vũ trụ qua thuật xem tướng tay cổ xưa kết hợp AI thị giác máy tính.
-            </Text>
+          {/* Header Banner */}
+          <View style={styles.pageHeader}>
+            <View style={styles.headerTopBadge}>
+              <Text style={styles.headerTopBadgeIcon}>✨</Text>
+              <Text style={styles.headerTopBadgeText}>
+                ĐÀI CHIÊM TINH · NGHI THỨC XEM CHỈ TAY
+              </Text>
+            </View>
+            <View style={styles.headerTitleRow}>
+              <Text style={styles.pageTitle}>Khởi tạo Quẻ Bói Chỉ Tay</Text>
+              <Text style={styles.headerSymbols}>✦ ☽ ☼ ☾ ✦</Text>
+            </View>
           </View>
 
-          {/* Reject Reason Notice if previous attempt failed */}
+          {/* Reject Notice if any */}
           {rejectReason && (
             <View style={styles.rejectNotice}>
-              <Text style={styles.rejectNoticeTitle}>⚠️ Bàn tay chưa hợp lệ</Text>
+              <Text style={styles.rejectNoticeTitle}>
+                ⚠️ Không nhìn rõ lòng bàn tay
+              </Text>
               <Text style={styles.rejectNoticeText}>{rejectReason}</Text>
             </View>
           )}
 
-          {/* STEP 1: CHỌN TRƯỜNG PHÁI */}
-          <View style={styles.stepHeaderRow}>
-            <Text style={styles.stepTitle}>1. Chọn Trường Phái</Text>
-            <Text style={styles.stepBadge}>✦ Huyền Học</Text>
-          </View>
-
-          {READING_SCHOOL_LIST.map((sch) => {
-            const isSelected = school === sch.id;
-            return (
-              <TouchableOpacity
-                key={sch.id}
-                style={[
-                  styles.schoolOption,
-                  isSelected && styles.schoolOptionSelected,
-                ]}
-                onPress={() => handleSelectSchool(sch.id)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.schoolHeader}>
-                  <Text
-                    style={[
-                      styles.schoolName,
-                      isSelected && styles.schoolNameSelected,
-                    ]}
-                  >
-                    {isSelected ? '(x) ' : '( ) '}
-                    {sch.name}
-                  </Text>
-                  <Text style={styles.schoolSymbol}>{SCHOOL_SYMBOLS[sch.id]}</Text>
-                </View>
-                <Text style={styles.schoolDesc}>{sch.description}</Text>
-              </TouchableOpacity>
-            );
-          })}
-
-          {/* STEP 2: CHỌN MỤC BÓI */}
-          <View style={[styles.stepHeaderRow, { marginTop: 20 }]}>
-            <Text style={styles.stepTitle}>2. Mục Muốn Bói</Text>
-            <Text style={styles.stepBadge}>✦ Quẻ Mệnh</Text>
-          </View>
-
-          {/* Toggle All Topics */}
-          <TouchableOpacity
-            style={[
-              styles.toggleAllBtn,
-              isAllTopics && styles.toggleAllBtnActive,
-            ]}
-            onPress={handleToggleAll}
-            activeOpacity={0.8}
-          >
-            <Text
-              style={[
-                styles.toggleAllText,
-                isAllTopics && styles.toggleAllTextActive,
-              ]}
-            >
-              {isAllTopics ? '[x] Bói toàn bộ các mục' : '[ ] Tùy chọn từng mục'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Group 1: Đường chỉ & dấu hiệu theo trường phái */}
-          <Text style={styles.subGroupTitle}>
-            Đường chỉ & dấu hiệu ({READING_SCHOOLS[school].name}):
-          </Text>
-          <View style={styles.topicsBox}>
-            {READING_SCHOOLS[school].sections.map((sec) => {
-              const active = isSectionSelected(sec.key);
-              return (
-                <TouchableOpacity
-                  key={sec.key}
-                  style={[styles.topicRow, active && styles.topicRowActive]}
-                  onPress={() => handleToggleSection(sec.key)}
-                >
-                  <Text style={[styles.topicCheck, active && styles.topicCheckActive]}>
-                    {active ? '[x]' : '[ ]'}
-                  </Text>
-                  <Text style={[styles.topicLabel, active && styles.topicLabelActive]}>
-                    {sec.title || sec.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Group 2: Khía cạnh đời sống */}
-          <Text style={styles.subGroupTitle}>Khía cạnh cuộc sống:</Text>
-          <View style={styles.aspectsGrid}>
-            {LIFE_ASPECTS.map((asp) => {
-              const active = isAspectSelected(asp.key);
-              return (
-                <TouchableOpacity
-                  key={asp.key}
-                  style={[styles.aspectChip, active && styles.aspectChipActive]}
-                  onPress={() => handleToggleAspect(asp.key)}
-                >
-                  <Text style={[styles.topicCheck, active && styles.topicCheckActive]}>
-                    {active ? '[x]' : '[ ]'}
-                  </Text>
-                  <Text style={[styles.aspectLabel, active && styles.aspectLabelActive]}>
-                    {asp.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {selectedCount === 0 && (
-            <Text style={styles.warningZero}>[!] Cần chọn ít nhất 1 mục để xem bói.</Text>
-          )}
-
-          {/* STEP 3: CHỌN TAY */}
-          <View style={[styles.stepHeaderRow, { marginTop: 20 }]}>
-            <Text style={styles.stepTitle}>3. Bàn Tay Khám Phá</Text>
-            <Text style={styles.stepBadge}>✦ Âm Dương</Text>
-          </View>
-
-          <View style={styles.handRow}>
-            <TouchableOpacity
-              style={[
-                styles.handBtn,
-                hand === HandOrientation.LEFT && styles.handBtnSelected,
-              ]}
-              onPress={() => setHand(HandOrientation.LEFT)}
-            >
-              <Text
-                style={[
-                  styles.handBtnText,
-                  hand === HandOrientation.LEFT && styles.handBtnTextSelected,
-                ]}
-              >
-                {hand === HandOrientation.LEFT ? '(x) ' : '( ) '}Tay trái
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.handBtn,
-                hand === HandOrientation.RIGHT && styles.handBtnSelected,
-              ]}
-              onPress={() => setHand(HandOrientation.RIGHT)}
-            >
-              <Text
-                style={[
-                  styles.handBtnText,
-                  hand === HandOrientation.RIGHT && styles.handBtnTextSelected,
-                ]}
-              >
-                {hand === HandOrientation.RIGHT ? '(x) ' : '( ) '}Tay phải
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {school === ReadingSchool.EASTERN && (
-            <View style={styles.easternHint}>
-              <Text style={styles.easternHintText}>
-                💡 Theo quy tắc Đông phương: Nam xem tay trái, Nữ xem tay phải.
-              </Text>
-            </View>
-          )}
-
-          <Text style={styles.costHint}>
-            [i] Chi phí 1 credit, bao trọn mọi mục bạn đã chọn.
-          </Text>
-
-          {/* STEP 4: CHỤP / TẢI ẢNH */}
-          <View style={[styles.stepHeaderRow, { marginTop: 20 }]}>
-            <Text style={styles.stepTitle}>4. Ảnh Lòng Bàn Tay</Text>
-            <Text style={styles.stepBadge}>✦ Thị Giác AI</Text>
-          </View>
-
-          {imageUri ? (
-            <View style={styles.previewBox}>
-              <Image source={{ uri: imageUri }} style={styles.previewImg} />
-              <View style={styles.previewControls}>
-                <TouchableOpacity
-                  style={styles.retakeBtn}
-                  onPress={() => setImageUri(null)}
-                >
-                  <Text style={styles.retakeBtnText}>🔄 Chụp / Chọn lại</Text>
-                </TouchableOpacity>
+          {/* CARD 1: OPTIONS (Steps 1, 2, 3) */}
+          <TarotCard style={styles.formCard}>
+            {/* STEP 1: CHỌN TRƯỜNG PHÁI */}
+            <View style={styles.stepTitleRow}>
+              <View style={styles.stepHeadingGroup}>
+                <Text style={styles.stepEmoji}>🧭</Text>
+                <Text style={styles.stepHeading}>1. Trường phái</Text>
               </View>
+              <Text style={styles.stepRuneBadge}>✦ Huyền Học</Text>
             </View>
-          ) : (
-            <View style={styles.captureMethods}>
-              <TouchableOpacity
-                style={styles.cameraBigBtn}
-                onPress={handleTakePhoto}
+
+            <View style={styles.schoolsList}>
+              {READING_SCHOOL_LIST.map((sch) => {
+                const isSelected = school === sch.id;
+                return (
+                  <TouchableOpacity
+                    key={sch.id}
+                    style={[
+                      styles.schoolOption,
+                      isSelected && styles.schoolOptionSelected,
+                    ]}
+                    onPress={() => handleSelectSchool(sch.id)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.schoolHeader}>
+                      <Text
+                        style={[
+                          styles.schoolName,
+                          isSelected && styles.schoolNameSelected,
+                        ]}
+                      >
+                        {isSelected ? '(x) ' : '( ) '}
+                        {sch.name}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.schoolSymbol,
+                          isSelected && styles.schoolSymbolSelected,
+                        ]}
+                      >
+                        {SCHOOL_SYMBOLS[sch.id]}
+                      </Text>
+                    </View>
+                    <Text style={styles.schoolDesc}>{sch.description}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* STEP 2: CHỌN MỤC BÓI */}
+            <View style={[styles.stepTitleRow, { marginTop: 24 }]}>
+              <View style={styles.stepHeadingGroup}>
+                <Text style={styles.stepEmoji}>✨</Text>
+                <Text style={styles.stepHeading}>2. Mục muốn bói</Text>
+              </View>
+              <Text style={styles.stepRuneBadge}>✦ Quẻ Mệnh</Text>
+            </View>
+
+            {/* Toggle All Topics */}
+            <TouchableOpacity
+              style={[
+                styles.toggleAllBtn,
+                isAllTopics && styles.toggleAllBtnActive,
+              ]}
+              onPress={handleToggleAll}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.toggleAllCheckbox}>
+                {isAllTopics ? '[x] ' : '[ ] '}
+              </Text>
+              <Text
+                style={[
+                  styles.toggleAllLabel,
+                  isAllTopics && styles.toggleAllLabelActive,
+                ]}
               >
-                <Text style={styles.cameraIcon}>📸</Text>
-                <Text style={styles.cameraTitle}>Chụp ảnh trực tiếp</Text>
-                <Text style={styles.cameraDesc}>
-                  Đặt bàn tay mở tự nhiên dưới ánh sáng rõ nét
+                Bói toàn bộ
+              </Text>
+            </TouchableOpacity>
+
+            {/* Group 1: Đường chỉ & dấu hiệu theo trường phái */}
+            <Text style={styles.subGroupHeading}>
+              ĐƯỜNG CHỈ & DẤU HIỆU (
+              {READING_SCHOOLS[school].name.replace('Chỉ tay ', '').toUpperCase()}
+              ):
+            </Text>
+            <View style={styles.subGroupContainer}>
+              {READING_SCHOOLS[school].sections.map((sec) => {
+                const active = isSectionSelected(sec.key);
+                return (
+                  <TouchableOpacity
+                    key={sec.key}
+                    style={[styles.topicRow, active && styles.topicRowActive]}
+                    onPress={() => handleToggleSection(sec.key)}
+                  >
+                    <Text
+                      style={[styles.topicCheck, active && styles.topicCheckActive]}
+                    >
+                      {active ? '[x] ' : '[ ] '}
+                    </Text>
+                    <Text
+                      style={[styles.topicLabel, active && styles.topicLabelActive]}
+                    >
+                      {sec.title || sec.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Group 2: Khía cạnh cuộc sống */}
+            <Text style={styles.subGroupHeading}>KHÍA CẠNH CUỘC SỐNG</Text>
+            <View style={styles.aspectsGrid}>
+              {LIFE_ASPECTS.map((asp) => {
+                const active = isAspectSelected(asp.key);
+                return (
+                  <TouchableOpacity
+                    key={asp.key}
+                    style={[styles.aspectChip, active && styles.aspectChipActive]}
+                    onPress={() => handleToggleAspect(asp.key)}
+                  >
+                    <Text
+                      style={[styles.topicCheck, active && styles.topicCheckActive]}
+                    >
+                      {active ? '[x] ' : '[ ] '}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.aspectLabel,
+                        active && styles.aspectLabelActive,
+                      ]}
+                    >
+                      {asp.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {selectedCount === 0 && (
+              <Text style={styles.warningZero}>[!] Chọn ít nhất 1 mục</Text>
+            )}
+
+            {/* STEP 3: CHỌN TAY */}
+            <View style={[styles.stepTitleRow, { marginTop: 24 }]}>
+              <View style={styles.stepHeadingGroup}>
+                <Text style={styles.stepEmoji}>✋</Text>
+                <Text style={styles.stepHeading}>3. Tay</Text>
+              </View>
+              <Text style={styles.stepRuneBadge}>✦ Âm Dương</Text>
+            </View>
+
+            <View style={styles.handRow}>
+              <TouchableOpacity
+                style={[
+                  styles.handOption,
+                  hand === HandOrientation.LEFT && styles.handOptionSelected,
+                ]}
+                onPress={() => setHand(HandOrientation.LEFT)}
+              >
+                <Text
+                  style={[
+                    styles.handOptionText,
+                    hand === HandOrientation.LEFT && styles.handOptionTextSelected,
+                  ]}
+                >
+                  {hand === HandOrientation.LEFT ? '(x) ' : '( ) '}Tay trái
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.galleryBtn}
-                onPress={handlePickImage}
+                style={[
+                  styles.handOption,
+                  hand === HandOrientation.RIGHT && styles.handOptionSelected,
+                ]}
+                onPress={() => setHand(HandOrientation.RIGHT)}
               >
-                <Text style={styles.galleryBtnText}>📁 Chọn ảnh từ thư viện</Text>
+                <Text
+                  style={[
+                    styles.handOptionText,
+                    hand === HandOrientation.RIGHT && styles.handOptionTextSelected,
+                  ]}
+                >
+                  {hand === HandOrientation.RIGHT ? '(x) ' : '( ) '}Tay phải
+                </Text>
               </TouchableOpacity>
             </View>
-          )}
 
-          {/* AI Consent Checkbox */}
-          <TouchableOpacity
-            style={styles.consentRow}
-            onPress={() => setAiConsent(!aiConsent)}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.checkbox, aiConsent && styles.checkboxChecked]}>
-              {aiConsent && <Text style={styles.tick}>✓</Text>}
-            </View>
-            <Text style={styles.consentText}>
-              Tôi đồng ý cho phép phân tích hình ảnh bàn tay bằng AI theo Điều khoản dịch vụ và Chính sách riêng tư của PalmSight.
-            </Text>
-          </TouchableOpacity>
+            {school === ReadingSchool.EASTERN && (
+              <View style={styles.easternHintBox}>
+                <Text style={styles.easternHintText}>
+                  [i] Nam xem tay trái, nữ xem tay phải.
+                </Text>
+              </View>
+            )}
 
-          {/* Credit balance warning for members */}
-          {isLogged && (user?.creditBalance ?? 0) <= 0 && (
-            <View style={styles.outOfCreditBox}>
-              <Text style={styles.outOfCreditText}>
-                ⚠️ Bạn đang có 0 credit. Nhập mã giới thiệu bạn bè để được tặng ngay 1 credit miễn phí!
+            <View style={styles.priceDivider}>
+              <Text style={styles.priceDividerText}>
+                [i] Giá 1 credit, dù chọn bao nhiêu mục
               </Text>
-              <TouchableOpacity
-                style={styles.enterCodeLinkBtn}
-                onPress={onGoWallet}
-              >
-                <Text style={styles.enterCodeLinkText}>Nhập mã nhận credit &rarr;</Text>
-              </TouchableOpacity>
             </View>
-          )}
+          </TarotCard>
 
-          {/* Submit Action */}
-          <TouchableOpacity
-            style={[
-              styles.startScanBtn,
-              (!imageUri || !aiConsent || selectedCount === 0) &&
-                styles.startScanBtnDisabled,
-            ]}
-            onPress={handleStartScan}
-            disabled={!imageUri || !aiConsent || selectedCount === 0}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.startScanBtnText}>
-              {isLogged ? '[ BẮT ĐẦU XEM BÓI (−1 CREDIT) ]' : '[ BÓI THỬ MIỄN PHÍ ]'}
+          {/* CARD 2: CAPTURE STEP (Step 4) */}
+          <TarotCard style={styles.captureCard}>
+            <View style={styles.stepTitleRow}>
+              <View style={styles.stepHeadingGroup}>
+                <Text style={styles.stepEmoji}>📸</Text>
+                <Text style={styles.stepHeading}>4. Ảnh lòng bàn tay</Text>
+              </View>
+              <Text style={styles.stepRuneBadge}>✦ Thị Giác AI</Text>
+            </View>
+
+            {/* Wireframe Scanner Visual / Preview Box */}
+            <View style={styles.scannerViewport}>
+              <View style={styles.scannerTopBadge}>
+                <Text style={styles.scannerTopBadgeText}>
+                  SCAN AREA // 1080P
+                </Text>
+              </View>
+
+              {imageUri ? (
+                <Image source={{ uri: imageUri }} style={styles.previewImage} />
+              ) : (
+                <View style={styles.wireframeContainer}>
+                  <Text style={styles.wireframePalm}>✋</Text>
+                  <Text style={styles.wireframeSubtext}>
+                    Đưa lòng bàn tay vào khung hình
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.scannerBottomBar}>
+                <Text style={styles.scannerMetaText}>FPS: 30.0</Text>
+                <Text style={styles.scannerMetaTextCenter}>ALIGN_CENTER</Text>
+                <Text style={styles.scannerMetaText}>ISO_AUTO</Text>
+              </View>
+            </View>
+
+            <Text style={styles.captureInstruction}>
+              Đủ sáng, xòe ngón tay, lòng bàn tay hướng thẳng camera.
             </Text>
-          </TouchableOpacity>
+
+            {/* Buttons: Retake or Pick / Snap */}
+            <View style={styles.captureBtnRow}>
+              {imageUri ? (
+                <TouchableOpacity
+                  style={styles.btnSecondary}
+                  onPress={() => setImageUri(null)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.btnIcon}>🔄</Text>
+                  <Text style={styles.btnSecondaryText}>Chụp lại / Chọn lại</Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={styles.btnPrimary}
+                    onPress={handleTakePhoto}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.btnIconDark}>📸</Text>
+                    <Text style={styles.btnPrimaryText}>Bật camera</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.btnSecondary}
+                    onPress={handlePickImage}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.btnIcon}>📁</Text>
+                    <Text style={styles.btnSecondaryText}>Chọn ảnh có sẵn</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+
+            {/* Consent Box */}
+            <TouchableOpacity
+              style={styles.consentBox}
+              onPress={() => setAiConsent(!aiConsent)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.checkbox, aiConsent && styles.checkboxChecked]}>
+                {aiConsent && <Text style={styles.checkboxTick}>✓</Text>}
+              </View>
+              <Text style={styles.consentLabel}>
+                Tôi đồng ý gửi ảnh lòng bàn tay cho hệ thống AI phân tích
+              </Text>
+            </TouchableOpacity>
+
+            {/* Insufficient credits notice if 0 */}
+            {isLogged && (user?.creditBalance ?? 0) <= 0 && (
+              <View style={styles.noCreditBox}>
+                <Text style={styles.noCreditTitle}>[!] Hết credits</Text>
+                <Text style={styles.noCreditText}>
+                  Mời bạn bè nhập mã để nhận 2 credits.
+                </Text>
+                <TouchableOpacity
+                  style={styles.noCreditLinkBtn}
+                  onPress={onGoWallet}
+                >
+                  <Text style={styles.noCreditLinkText}>
+                    Đến Ví credits &rarr;
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Big Submit Button */}
+            <TouchableOpacity
+              style={[
+                styles.btnSubmitBig,
+                (!imageUri || !aiConsent || selectedCount === 0) &&
+                  styles.btnSubmitBigDisabled,
+              ]}
+              onPress={handleStartScan}
+              disabled={!imageUri || !aiConsent || selectedCount === 0}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.btnSubmitBigText}>
+                {isLogged
+                  ? '[ BẮT ĐẦU XEM BÓI (−1 CREDIT) ]'
+                  : '[ BÓI THỬ MIỄN PHÍ ]'}
+              </Text>
+            </TouchableOpacity>
+          </TarotCard>
         </View>
       )}
     </ScrollView>
@@ -647,426 +720,573 @@ export const ScanScreen: React.FC<ScanScreenProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 48,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
+    backgroundColor: '#0b0716',
   },
-  headerTitleBox: {
-    marginBottom: 20,
+
+  // Page Header
+  pageHeader: {
+    paddingBottom: 16,
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(212, 175, 55, 0.25)',
   },
-  badgeTop: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 2,
+  headerTopBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: 4,
   },
-  mainTitle: {
-    fontSize: 26,
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-  },
-  mainDesc: {
-    fontSize: 13,
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  rejectNotice: {
-    backgroundColor: 'rgba(251, 113, 133, 0.15)',
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.danger,
-    borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    padding: 12,
-    marginBottom: 16,
-  },
-  rejectNoticeTitle: {
-    color: PALMSIGHT_MOBILE_THEME.colors.danger,
-    fontWeight: 'bold',
-    fontSize: 13,
-    marginBottom: 2,
-  },
-  rejectNoticeText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
+  headerTopBadgeIcon: {
     fontSize: 12,
-    lineHeight: 18,
   },
-  stepHeaderRow: {
+  headerTopBadgeText: {
+    color: '#d4af37',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  headerTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 6,
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  pageTitle: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#f7e7b4',
+  },
+  headerSymbols: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
+    fontSize: 11,
+    color: '#9e8cb8',
+    letterSpacing: 2,
+  },
+
+  rejectNotice: {
+    backgroundColor: 'rgba(76, 5, 25, 0.5)',
+    borderWidth: 1,
+    borderColor: '#fb7185',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  rejectNoticeTitle: {
+    color: '#fb7185',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  rejectNoticeText: {
+    color: '#f5e6c8',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+
+  // Form Card
+  formCard: {
+    marginBottom: 18,
+    padding: 16,
+  },
+  stepTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
+    borderBottomColor: 'rgba(212, 175, 55, 0.25)',
     marginBottom: 12,
   },
-  stepTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+  stepHeadingGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  stepBadge: {
-    fontSize: 11,
-    color: PALMSIGHT_MOBILE_THEME.colors.goldDim,
+  stepEmoji: {
+    fontSize: 15,
+  },
+  stepHeading: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#f7e7b4',
+  },
+  stepRuneBadge: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
+    fontSize: 10,
+    color: '#d4af37',
     letterSpacing: 1,
+  },
+
+  // Schools list
+  schoolsList: {
+    gap: 10,
   },
   schoolOption: {
     backgroundColor: 'rgba(11, 7, 22, 0.6)',
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    borderColor: 'rgba(212, 175, 55, 0.25)',
+    borderRadius: 12,
     padding: 14,
-    marginBottom: 10,
   },
   schoolOptionSelected: {
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
-    shadowColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: 'rgba(44, 29, 79, 0.9)',
+    borderColor: '#d4af37',
   },
   schoolHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 4,
   },
   schoolName: {
     fontSize: 15,
     fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
+    color: '#d8cbe8',
   },
   schoolNameSelected: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    color: '#f7e7b4',
+    fontWeight: '800',
   },
   schoolSymbol: {
     fontSize: 16,
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
+    color: '#9e8cb8',
+  },
+  schoolSymbolSelected: {
+    color: '#d4af37',
   },
   schoolDesc: {
     fontSize: 12,
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    marginTop: 4,
-    lineHeight: 16,
+    color: '#9e8cb8',
+    lineHeight: 18,
   },
+
+  // Topics Step
   toggleAllBtn: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(11, 7, 22, 0.6)',
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    padding: 12,
-    marginBottom: 12,
+    borderColor: 'rgba(212, 175, 55, 0.25)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 14,
   },
   toggleAllBtnActive: {
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
+    backgroundColor: 'rgba(44, 29, 79, 0.8)',
+    borderColor: 'rgba(212, 175, 55, 0.6)',
   },
-  toggleAllText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    fontWeight: '600',
+  toggleAllCheckbox: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
+    fontSize: 13,
+    color: '#d4af37',
+    fontWeight: '800',
+  },
+  toggleAllLabel: {
     fontSize: 14,
+    color: '#d8cbe8',
+    fontWeight: '600',
   },
-  toggleAllTextActive: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontWeight: 'bold',
+  toggleAllLabelActive: {
+    color: '#f7e7b4',
+    fontWeight: '800',
   },
-  subGroupTitle: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    color: PALMSIGHT_MOBILE_THEME.colors.goldDim,
-    fontWeight: '700',
-    marginBottom: 6,
-    marginTop: 4,
+
+  subGroupHeading: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: 'rgba(212, 175, 55, 0.9)',
+    letterSpacing: 1.5,
+    marginTop: 6,
+    marginBottom: 8,
   },
-  topicsBox: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.borderSubtle,
+  subGroupContainer: {
+    backgroundColor: 'rgba(11, 7, 22, 0.5)',
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    padding: 8,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
+    borderRadius: 12,
+    padding: 10,
+    gap: 4,
     marginBottom: 12,
   },
   topicRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 8,
   },
   topicRowActive: {
-    backgroundColor: 'rgba(212, 175, 55, 0.08)',
+    backgroundColor: 'rgba(36, 24, 66, 0.7)',
   },
   topicCheck: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    fontSize: 13,
-    fontWeight: 'bold',
-    marginRight: 8,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
+    color: '#9e8cb8',
+    fontSize: 12,
+    marginRight: 6,
   },
   topicCheckActive: {
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
+    color: '#d4af37',
+    fontWeight: '800',
   },
   topicLabel: {
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
     fontSize: 13,
+    color: '#9e8cb8',
   },
   topicLabelActive: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    color: '#f7e7b4',
     fontWeight: '600',
   },
+
   aspectsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.borderSubtle,
+    backgroundColor: 'rgba(11, 7, 22, 0.5)',
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
+    borderRadius: 12,
     padding: 10,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   aspectChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 4,
     paddingHorizontal: 8,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
-    width: '48%',
+    borderRadius: 8,
   },
   aspectChipActive: {
-    backgroundColor: 'rgba(212, 175, 55, 0.08)',
+    backgroundColor: 'rgba(36, 24, 66, 0.8)',
   },
   aspectLabel: {
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
     fontSize: 13,
+    color: '#9e8cb8',
   },
   aspectLabelActive: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    color: '#f7e7b4',
     fontWeight: '600',
   },
   warningZero: {
-    color: PALMSIGHT_MOBILE_THEME.colors.danger,
+    color: '#fb7185',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginTop: 4,
   },
+
+  // Hand Step
   handRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 8,
+    gap: 12,
+    marginBottom: 10,
   },
-  handBtn: {
+  handOption: {
     flex: 1,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
+    backgroundColor: 'rgba(11, 7, 22, 0.6)',
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    borderColor: 'rgba(212, 175, 55, 0.25)',
+    borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
   },
-  handBtnSelected: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.gold,
+  handOptionSelected: {
+    backgroundColor: 'rgba(44, 29, 79, 0.85)',
+    borderColor: '#d4af37',
   },
-  handBtnText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
+  handOptionText: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#9e8cb8',
   },
-  handBtnTextSelected: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontWeight: 'bold',
+  handOptionTextSelected: {
+    color: '#f7e7b4',
+    fontWeight: '800',
   },
-  easternHint: {
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-    borderColor: 'rgba(212, 175, 55, 0.3)',
+  easternHintBox: {
+    backgroundColor: 'rgba(11, 7, 22, 0.6)',
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
-    padding: 8,
-    marginTop: 4,
-    marginBottom: 8,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
   },
   easternHintText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    color: 'rgba(212, 175, 55, 0.9)',
     fontSize: 12,
   },
-  costHint: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+  priceDivider: {
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(212, 175, 55, 0.2)',
+  },
+  priceDividerText: {
     fontSize: 12,
+    color: '#9e8cb8',
+  },
+
+  // Capture Card
+  captureCard: {
+    padding: 16,
+  },
+  scannerViewport: {
+    height: 240,
+    backgroundColor: '#0b0716',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderRadius: 14,
+    position: 'relative',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  scannerTopBadge: {
+    position: 'absolute',
+    top: 10,
+    backgroundColor: 'rgba(11, 7, 22, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 9999,
+    zIndex: 10,
+  },
+  scannerTopBadgeText: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
+    fontSize: 9,
+    color: 'rgba(245, 215, 127, 0.85)',
+    letterSpacing: 1.5,
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
+  },
+  wireframeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wireframePalm: {
+    fontSize: 68,
+    color: 'rgba(245, 215, 127, 0.5)',
     marginBottom: 8,
   },
-  previewBox: {
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    marginBottom: 14,
+  wireframeSubtext: {
+    fontSize: 12,
+    color: '#9e8cb8',
   },
-  previewImg: {
-    width: '100%',
-    height: 240,
-  },
-  previewControls: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    padding: 10,
+  scannerBottomBar: {
+    position: 'absolute',
+    bottom: 8,
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  retakeBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
+  scannerMetaText: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
+    fontSize: 9,
+    color: 'rgba(212, 175, 55, 0.7)',
   },
-  retakeBtnText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+  scannerMetaTextCenter: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
+    fontSize: 9,
+    color: 'rgba(247, 231, 180, 0.85)',
+  },
+  captureInstruction: {
+    fontSize: 13,
+    color: '#d8cbe8',
+    marginBottom: 14,
+    lineHeight: 19,
+  },
+  captureBtnRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 16,
+  },
+  btnPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#d4af37',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 9999,
+  },
+  btnPrimaryText: {
+    color: '#0b0716',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  btnSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(27, 18, 51, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.45)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 9999,
+  },
+  btnSecondaryText: {
+    color: '#f5e6c8',
     fontSize: 13,
     fontWeight: '600',
   },
-  captureMethods: {
-    gap: 10,
-    marginBottom: 14,
+  btnIcon: {
+    fontSize: 13,
   },
-  cameraBigBtn: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairlineStrong,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    padding: 24,
-    alignItems: 'center',
+  btnIconDark: {
+    fontSize: 13,
   },
-  cameraIcon: {
-    fontSize: 32,
-    marginBottom: 6,
-  },
-  cameraTitle: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  cameraDesc: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  galleryBtn: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
-    borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  galleryBtnText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  consentRow: {
+
+  consentBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginVertical: 10,
+    gap: 10,
+    backgroundColor: 'rgba(11, 7, 22, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.25)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairlineStrong,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    alignItems: 'center',
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.6)',
+    backgroundColor: '#0b0716',
     justifyContent: 'center',
-    marginRight: 10,
+    alignItems: 'center',
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.gold,
+    backgroundColor: '#d4af37',
   },
-  tick: {
-    color: '#000',
+  checkboxTick: {
+    color: '#0b0716',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '900',
   },
-  consentText: {
+  consentLabel: {
     flex: 1,
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
-    fontSize: 12,
+    fontSize: 13,
+    color: '#d8cbe8',
     lineHeight: 18,
   },
-  outOfCreditBox: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.warning,
+
+  noCreditBox: {
+    backgroundColor: 'rgba(36, 24, 66, 0.8)',
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    padding: 12,
-    marginVertical: 10,
+    borderColor: 'rgba(245, 158, 11, 0.6)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
   },
-  outOfCreditText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
+  noCreditTitle: {
+    color: '#f59e0b',
+    fontWeight: '800',
     fontSize: 13,
-    lineHeight: 18,
+    marginBottom: 4,
   },
-  enterCodeLinkBtn: {
-    marginTop: 6,
+  noCreditText: {
+    color: '#d8cbe8',
+    fontSize: 12,
+    marginBottom: 6,
   },
-  enterCodeLinkText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 13,
-    fontWeight: 'bold',
+  noCreditLinkBtn: {
+    alignSelf: 'flex-start',
+  },
+  noCreditLinkText: {
+    color: '#f7e7b4',
+    fontSize: 12,
+    fontWeight: '700',
     textDecorationLine: 'underline',
   },
-  startScanBtn: {
-    height: 50,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+
+  btnSubmitBig: {
+    backgroundColor: '#d4af37',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 243, 209, 0.65)',
+    borderRadius: 9999,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
-    shadowColor: PALMSIGHT_MOBILE_THEME.colors.gold,
+    shadowColor: '#d4af37',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 5,
   },
-  startScanBtnDisabled: {
+  btnSubmitBigDisabled: {
     opacity: 0.45,
   },
-  startScanBtnText: {
-    color: '#120a21',
+  btnSubmitBigText: {
+    color: '#0b0716',
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
+    fontSize: 13,
     fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 1.5,
+    letterSpacing: 1,
   },
-  analyzingBox: {
+
+  // Analyzing
+  analyzingWrapper: {
     paddingVertical: 40,
   },
   analyzingCard: {
+    padding: 32,
     alignItems: 'center',
-    padding: 28,
+    textAlign: 'center',
   },
-  pulseContainer: {
-    marginVertical: 20,
+  oracleHalo: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(44, 29, 79, 0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#d4af37',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 6,
   },
   analyzingTitle: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 18,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontSize: 20,
     fontWeight: '800',
-    letterSpacing: 2,
-    marginBottom: 12,
+    color: '#f7e7b4',
+    letterSpacing: 1.5,
+    marginBottom: 10,
+    textAlign: 'center',
   },
   analyzingDesc: {
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
     fontSize: 14,
+    color: '#d8cbe8',
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 16,
+    marginBottom: 14,
+    lineHeight: 20,
   },
   analyzingTip: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
     fontSize: 12,
+    color: '#9e8cb8',
     textAlign: 'center',
     lineHeight: 18,
   },

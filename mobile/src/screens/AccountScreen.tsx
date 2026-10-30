@@ -57,12 +57,12 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({
       <View style={styles.centerBox}>
         <TarotCard style={styles.promptCard}>
           <Text style={styles.badgeTop}>✦ HỒ SƠ THIÊN MỆNH</Text>
-          <Text style={styles.promptTitle}>Tài khoản người dùng</Text>
+          <Text style={styles.promptTitle}>Tài khoản</Text>
           <Text style={styles.promptDesc}>
             Đăng nhập để xem thông tin cá nhân, quản lý ví credits và chia sẻ mã giới thiệu bạn bè.
           </Text>
-          <TouchableOpacity style={styles.loginBtn} onPress={onGoLogin}>
-            <Text style={styles.loginBtnText}>[ ĐĂNG NHẬP / ĐĂNG KÝ ]</Text>
+          <TouchableOpacity style={styles.btnPrimary} onPress={onGoLogin}>
+            <Text style={styles.btnPrimaryText}>Đăng nhập / Đăng ký</Text>
           </TouchableOpacity>
         </TarotCard>
       </View>
@@ -169,7 +169,7 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({
         `Đã gửi link thiết lập mật khẩu tới ${user.email}. Vui lòng kiểm tra email của bạn!`,
         'Thiết lập mật khẩu'
       );
-    } catch (err: any) {
+    } catch {
       showError('Không thể gửi link lúc này. Vui lòng thử lại sau.');
     } finally {
       setSendingSetPw(false);
@@ -199,7 +199,10 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
       {/* 1. Profile Section */}
       <TarotCard style={styles.card}>
         <View style={styles.profileHeader}>
@@ -219,7 +222,7 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({
               )}
             </View>
             <Text style={styles.providerInfo}>
-              Phương thức đăng nhập: {providersText()}
+              Phương thức: {providersText()}
             </Text>
           </View>
         </View>
@@ -243,21 +246,28 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({
       {/* 2. Wallet Quick Card */}
       <TarotCard style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>✦ Ví Credits</Text>
+          <Text style={styles.cardTitle}>✦ Ví credits</Text>
           <TouchableOpacity onPress={onGoWallet}>
             <Text style={styles.cardLink}>Xem chi tiết &rarr;</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.creditBalance}>{user.creditBalance ?? 0} Credits</Text>
+        <Text style={styles.creditBalance}>{user.creditBalance ?? 0} credits</Text>
         <Text style={styles.cardDesc}>
           Mỗi lần xem bói tiêu thụ 1 credit. Credits không có hạn sử dụng.
         </Text>
+        <TouchableOpacity
+          style={styles.btnSecondary}
+          onPress={onGoWallet}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.btnSecondaryText}>Ví credits &rarr;</Text>
+        </TouchableOpacity>
       </TarotCard>
 
       {/* 3. Enter Referral Section */}
       {user.referral?.canEnterCode !== false && (
         <TarotCard style={styles.card}>
-          <Text style={styles.cardTitle}>✦ Nhập Mã Giới Thiệu (+1 Credit)</Text>
+          <Text style={styles.cardTitle}>✦ Nhập mã giới thiệu (+1 Credit)</Text>
           <Text style={styles.cardDesc}>
             Nhập mã từ bạn bè của bạn để nhận ngay 1 credit xem bói miễn phí.
           </Text>
@@ -274,18 +284,18 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({
               value={referralInput}
               onChangeText={setReferralInput}
               placeholder="MÃ GIỚI THIỆU"
-              placeholderTextColor={PALMSIGHT_MOBILE_THEME.colors.mute}
+              placeholderTextColor="#9e8cb8"
               autoCapitalize="characters"
             />
             <TouchableOpacity
-              style={styles.applyBtn}
+              style={styles.btnPrimarySmall}
               onPress={handleEnterReferral}
               disabled={submittingRef}
             >
               {submittingRef ? (
-                <ActivityIndicator size="small" color="#120a21" />
+                <ActivityIndicator size="small" color="#0b0716" />
               ) : (
-                <Text style={styles.applyBtnText}>ÁP DỤNG</Text>
+                <Text style={styles.btnPrimarySmallText}>Áp dụng</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -294,104 +304,88 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({
 
       {/* 4. Referral Share Section */}
       <TarotCard style={styles.card}>
-        <Text style={styles.cardTitle}>✦ Giới Thiệu Bạn Bè</Text>
+        <Text style={styles.cardTitle}>✦ Giới thiệu bạn bè</Text>
         <Text style={styles.cardDesc}>
-          Chia sẻ mã để bạn bè nhận +1 credit và bạn cũng được nhận thêm +1 credit khi họ xem bói!
+          Chia sẻ mã để bạn bè nhận +1 credit và bạn nhận ngay +2 credits khi họ xem bói!
         </Text>
 
-        {/* Code */}
-        <Text style={styles.subLabel}>MÃ CỦA BẠN</Text>
-        <View style={styles.shareBox}>
-          <Text style={styles.codeHighlight}>{user.referralCode || '—'}</Text>
-          <TouchableOpacity style={styles.copyBtn} onPress={handleCopyCode}>
-            <Text style={styles.copyBtnText}>
-              {copiedCode ? '✓ Đã chép' : 'Sao chép mã'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Link */}
-        <Text style={styles.subLabel}>LIÊN KẾT GIỚI THIỆU</Text>
-        <View style={styles.shareBox}>
-          <Text style={styles.linkText} numberOfLines={1}>
-            {shareLink}
-          </Text>
-          <TouchableOpacity style={styles.copyBtn} onPress={handleCopyLink}>
-            <Text style={styles.copyBtnText}>
-              {copiedLink ? '✓ Đã chép' : 'Sao chép'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Message */}
-        {sampleMessage ? (
-          <TouchableOpacity
-            style={styles.sampleMsgBtn}
-            onPress={handleCopyMessage}
-          >
-            <Text style={styles.sampleMsgText}>
-              {copiedMsg ? '✓ Đã sao chép tin nhắn mẫu!' : '📋 Sao chép tin nhắn mời bạn bè'}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-      </TarotCard>
-
-      {/* 5. Security Section */}
-      <TarotCard style={styles.card}>
-        <Text style={styles.cardTitle}>✦ Bảo Mật Tài Khoản</Text>
-        {user.hasPassword ? (
-          <View style={styles.securityRow}>
-            <View style={styles.securityTextWrap}>
-              <Text style={styles.securityTitle}>Mật khẩu tài khoản</Text>
-              <Text style={styles.securityDesc}>
-                Đổi mật khẩu định kỳ giúp bảo vệ tài khoản an toàn hơn.
+        <View style={styles.refBox}>
+          <Text style={styles.refBoxLabel}>MÃ GIỚI THIỆU CỦA BẠN</Text>
+          <View style={styles.refBoxRow}>
+            <Text style={styles.refCodeText}>{user.referralCode || 'CHƯA CÓ'}</Text>
+            <TouchableOpacity style={styles.copyBtn} onPress={handleCopyCode}>
+              <Text style={styles.copyBtnText}>
+                {copiedCode ? '✓ Đã chép' : 'Sao chép mã'}
               </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.changePwBtn}
-              onPress={onGoChangePassword}
-            >
-              <Text style={styles.changePwBtnText}>Đổi mật khẩu</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <View style={styles.securityRow}>
-            <View style={styles.securityTextWrap}>
-              <Text style={styles.securityTitle}>Thiết lập mật khẩu</Text>
-              <Text style={styles.securityDesc}>
-                Bạn đang đăng nhập qua Google. Đặt mật khẩu để đăng nhập bằng email.
-              </Text>
-            </View>
+        </View>
+
+        <View style={styles.refActionsRow}>
+          <TouchableOpacity style={styles.btnSecondary} onPress={handleCopyLink}>
+            <Text style={styles.btnSecondaryText}>
+              {copiedLink ? '✓ Đã chép link' : 'Sao chép link mời'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.btnSecondary} onPress={handleCopyMessage}>
+            <Text style={styles.btnSecondaryText}>
+              {copiedMsg ? '✓ Đã chép câu mời' : 'Sao chép lời mời'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </TarotCard>
+
+      {/* 5. Security & Password Section */}
+      <TarotCard style={styles.card}>
+        <Text style={styles.cardTitle}>✦ Bảo mật & Mật khẩu</Text>
+        <Text style={styles.cardDesc}>
+          {user.hasPassword
+            ? 'Thay đổi mật khẩu đăng nhập tài khoản thường xuyên để nâng cao tính an toàn.'
+            : 'Tài khoản đăng nhập qua mạng xã hội. Bạn có thể tạo mật khẩu để đăng nhập trực tiếp bằng email.'}
+        </Text>
+
+        <View style={styles.securityActionRow}>
+          {user.hasPassword ? (
             <TouchableOpacity
-              style={styles.changePwBtn}
+              style={styles.btnSecondary}
+              onPress={onGoChangePassword}
+            >
+              <Text style={styles.btnSecondaryText}>Đổi mật khẩu</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.btnSecondary}
               onPress={handleSendSetPasswordLink}
               disabled={sendingSetPw}
             >
-              <Text style={styles.changePwBtnText}>
-                {sendingSetPw ? 'Đang gửi...' : 'Đặt mật khẩu'}
-              </Text>
+              {sendingSetPw ? (
+                <ActivityIndicator size="small" color="#f5e6c8" />
+              ) : (
+                <Text style={styles.btnSecondaryText}>Tạo mật khẩu cho tài khoản</Text>
+              )}
             </TouchableOpacity>
-          </View>
-        )}
-      </TarotCard>
+          )}
 
-      {/* 6. Logout Action */}
-      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-        <Text style={styles.logoutBtnText}>🚪 ĐĂNG XUẤT</Text>
-      </TouchableOpacity>
+          <TouchableOpacity style={styles.btnLogout} onPress={handleLogout}>
+            <Text style={styles.btnLogoutText}>Đăng xuất</Text>
+          </TouchableOpacity>
+        </View>
+      </TarotCard>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    paddingBottom: 40,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 48,
+    backgroundColor: '#0b0716',
   },
   centerBox: {
     flex: 1,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
+    backgroundColor: '#0b0716',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -401,304 +395,292 @@ const styles = StyleSheet.create({
     padding: 28,
   },
   badgeTop: {
-    fontSize: 10,
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontSize: 11,
+    color: '#d4af37',
     letterSpacing: 2,
-    fontWeight: '700',
-    marginBottom: 6,
+    fontWeight: '800',
+    marginBottom: 4,
   },
   promptTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    marginBottom: 8,
+    fontWeight: '800',
+    color: '#f7e7b4',
+    marginBottom: 10,
   },
   promptDesc: {
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
     fontSize: 13,
+    color: '#d8cbe8',
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
   },
-  loginBtn: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  loginBtnText: {
-    color: '#120a21',
-    fontWeight: '800',
-    fontSize: 13,
-    letterSpacing: 1,
-  },
+
   card: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
+    marginBottom: 16,
     padding: 18,
-    marginBottom: 14,
   },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
+    marginBottom: 16,
   },
   avatarCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    borderWidth: 2,
-    alignItems: 'center',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#d4af37',
     justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 243, 209, 0.7)',
   },
   avatarLetter: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 24,
-    fontWeight: 'bold',
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0b0716',
   },
   profileInfo: {
     flex: 1,
   },
   displayName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#f7e7b4',
   },
   username: {
-    fontSize: 13,
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    marginBottom: 2,
+    fontSize: 12,
+    color: '#9e8cb8',
+    marginBottom: 4,
   },
   emailRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     flexWrap: 'wrap',
-    gap: 6,
-    marginVertical: 2,
+    marginBottom: 4,
   },
   emailText: {
     fontSize: 13,
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
+    color: '#d8cbe8',
   },
   verifiedBadge: {
     backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    borderColor: 'rgba(52, 211, 153, 0.4)',
     borderWidth: 1,
-    paddingVertical: 1,
-    paddingHorizontal: 6,
-    borderRadius: 8,
+    borderColor: 'rgba(52, 211, 153, 0.4)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 9999,
   },
   verifiedBadgeText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.success,
+    color: '#34d399',
     fontSize: 10,
     fontWeight: '700',
   },
   providerInfo: {
     fontSize: 11,
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    marginTop: 2,
+    color: '#9e8cb8',
   },
+
   idRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
-    padding: 10,
-    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(212, 175, 55, 0.2)',
   },
   idTextWrap: {
     flex: 1,
     marginRight: 10,
   },
   idLabel: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
     fontSize: 10,
-    color: PALMSIGHT_MOBILE_THEME.colors.goldDim,
-    fontWeight: '700',
+    fontWeight: '800',
+    color: '#c5a059',
     letterSpacing: 1,
   },
   idValue: {
-    fontSize: 12,
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
+    fontSize: 11,
+    color: '#d8cbe8',
     marginTop: 2,
   },
   copyBtn: {
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
+    backgroundColor: 'rgba(27, 18, 51, 0.85)',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.4)',
+    borderColor: 'rgba(212, 175, 55, 0.45)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   copyBtnText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    color: '#f7e7b4',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
   },
+
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   cardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#f7e7b4',
+    marginBottom: 4,
   },
   cardLink: {
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
+    color: '#d4af37',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   creditBalance: {
-    fontSize: 26,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
-    marginVertical: 4,
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#f7e7b4',
+    marginBottom: 4,
   },
   cardDesc: {
-    fontSize: 12,
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    lineHeight: 18,
-    marginTop: 2,
+    fontSize: 13,
+    color: '#d8cbe8',
+    lineHeight: 19,
+    marginBottom: 14,
   },
+
   successBanner: {
     backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    borderColor: 'rgba(52, 211, 153, 0.4)',
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
-    padding: 8,
-    marginVertical: 8,
+    borderColor: 'rgba(52, 211, 153, 0.4)',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
   },
   successBannerText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.success,
+    color: '#34d399',
     fontSize: 12,
+    fontWeight: '600',
   },
   referralInputRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
+    gap: 10,
   },
   refInput: {
     flex: 1,
-    height: 42,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
+    backgroundColor: 'rgba(11, 7, 22, 0.7)',
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
-    paddingHorizontal: 12,
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  applyBtn: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderRadius: 9999,
     paddingHorizontal: 16,
+    paddingVertical: 8,
+    color: '#f7e7b4',
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  btnPrimarySmall: {
+    backgroundColor: '#d4af37',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 9999,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  applyBtnText: {
-    color: '#120a21',
-    fontWeight: '800',
-    fontSize: 12,
-    letterSpacing: 1,
-  },
-  subLabel: {
-    fontSize: 10,
-    color: PALMSIGHT_MOBILE_THEME.colors.goldDim,
+  btnPrimarySmallText: {
+    color: '#0b0716',
     fontWeight: '700',
-    letterSpacing: 1,
-    marginTop: 10,
-    marginBottom: 4,
+    fontSize: 13,
   },
-  shareBox: {
+
+  refBox: {
+    backgroundColor: 'rgba(11, 7, 22, 0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.25)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  refBoxLabel: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#c5a059',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  refBoxRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
-    padding: 10,
-    marginBottom: 4,
   },
-  codeHighlight: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
+  refCodeText: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#f7e7b4',
     letterSpacing: 2,
   },
-  linkText: {
-    flex: 1,
-    fontSize: 12,
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
-    marginRight: 8,
-  },
-  sampleMsgBtn: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
-    padding: 10,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  sampleMsgText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  securityRow: {
+  refActionsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+
+  securityActionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  btnSecondary: {
+    backgroundColor: 'rgba(27, 18, 51, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.45)',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 9999,
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
   },
-  securityTextWrap: {
-    flex: 1,
-    marginRight: 10,
-  },
-  securityTitle: {
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
-    fontSize: 14,
+  btnSecondaryText: {
+    color: '#f5e6c8',
+    fontSize: 13,
     fontWeight: '600',
   },
-  securityDesc: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    fontSize: 12,
-    marginTop: 2,
-    lineHeight: 16,
-  },
-  changePwBtn: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairlineStrong,
-    borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  changePwBtnText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  logoutBtn: {
-    padding: 16,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    backgroundColor: 'rgba(251, 113, 133, 0.12)',
-    borderColor: 'rgba(251, 113, 133, 0.3)',
-    borderWidth: 1,
+  btnPrimary: {
+    backgroundColor: '#d4af37',
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 9999,
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 20,
+    justifyContent: 'center',
   },
-  logoutBtnText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.danger,
-    fontSize: 14,
-    fontWeight: 'bold',
-    letterSpacing: 1.5,
+  btnPrimaryText: {
+    color: '#0b0716',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  btnLogout: {
+    backgroundColor: 'rgba(76, 5, 25, 0.35)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 113, 133, 0.45)',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnLogoutText: {
+    color: '#fb7185',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
 

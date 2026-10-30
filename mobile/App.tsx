@@ -74,11 +74,14 @@ function AppContent() {
 
       {/* Header */}
       <MysticHeader
+        user={user}
         creditBalance={user?.creditBalance ?? null}
         isLogged={isLogged}
         onOpenWallet={() => handleSelectTab('wallet')}
         onOpenSettings={() => setSettingsVisible(true)}
         onGoHome={() => handleSelectTab('home')}
+        onGoAccount={() => handleSelectTab('account')}
+        onGoLogin={handleOpenLogin}
       />
 
       {/* Main View Area */}

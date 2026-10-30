@@ -98,7 +98,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               value={currentPassword}
               onChangeText={setCurrentPassword}
               placeholder="••••••••"
-              placeholderTextColor={PALMSIGHT_MOBILE_THEME.colors.mute}
+              placeholderTextColor="#9e8cb8"
               secureTextEntry
             />
 
@@ -108,7 +108,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               value={newPassword}
               onChangeText={setNewPassword}
               placeholder="••••••••"
-              placeholderTextColor={PALMSIGHT_MOBILE_THEME.colors.mute}
+              placeholderTextColor="#9e8cb8"
               secureTextEntry
             />
 
@@ -118,7 +118,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               placeholder="••••••••"
-              placeholderTextColor={PALMSIGHT_MOBILE_THEME.colors.mute}
+              placeholderTextColor="#9e8cb8"
               secureTextEntry
             />
 
@@ -129,9 +129,9 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               activeOpacity={0.85}
             >
               {submitting ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color="#0b0716" />
               ) : (
-                <Text style={styles.submitBtnText}>CẬP NHẬT MẬT KHẨU</Text>
+                <Text style={styles.submitBtnText}>Cập nhật mật khẩu</Text>
               )}
             </TouchableOpacity>
           </TarotCard>
@@ -152,11 +152,15 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   card: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
+    backgroundColor: '#1b1233',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     padding: 24,
     paddingBottom: 40,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
   },
   headerRow: {
     flexDirection: 'row',
@@ -166,59 +170,62 @@ const styles = StyleSheet.create({
   },
   badgeTop: {
     fontSize: 10,
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    color: '#d4af37',
     letterSpacing: 2,
-    fontWeight: '700',
+    fontWeight: '800',
     marginBottom: 4,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontWeight: '800',
+    color: '#f7e7b4',
   },
   closeBtn: {
     padding: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   closeBtnText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: '#9e8cb8',
+    fontSize: 18,
+    fontWeight: '700',
   },
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldDim,
+    color: '#f7e7b4',
     marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   input: {
-    height: 48,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
+    backgroundColor: 'rgba(11, 7, 22, 0.75)',
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    paddingHorizontal: 14,
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
-    fontSize: 15,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#f7e7b4',
+    fontSize: 14,
     marginBottom: 14,
   },
   submitBtn: {
-    height: 48,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    backgroundColor: '#d4af37',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 243, 209, 0.65)',
+    borderRadius: 9999,
+    paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
+    shadowColor: '#d4af37',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 4,
   },
   submitBtnText: {
-    color: '#120a21',
-    fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 1.5,
+    color: '#0b0716',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });
 

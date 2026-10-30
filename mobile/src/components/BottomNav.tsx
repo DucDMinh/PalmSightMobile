@@ -11,11 +11,11 @@ interface BottomNavProps {
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onSelectTab }) => {
   const tabs: { key: TabKey; label: string; icon: string }[] = [
-    { key: 'home', label: 'Trang Chủ', icon: '🏛️' },
-    { key: 'scan', label: 'Xem Bói', icon: '🔮' },
-    { key: 'history', label: 'Lịch Sử', icon: '📜' },
-    { key: 'wallet', label: 'Ví Credits', icon: '🪙' },
-    { key: 'account', label: 'Tài Khoản', icon: '👤' },
+    { key: 'home', label: 'Trang chủ', icon: '🏛️' },
+    { key: 'scan', label: 'Xem bói', icon: '✨' },
+    { key: 'history', label: 'Lịch sử', icon: '📜' },
+    { key: 'wallet', label: 'Ví credits', icon: '🪙' },
+    { key: 'account', label: 'Tài khoản', icon: '👤' },
   ];
 
   return (
@@ -44,46 +44,52 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onSelectTab }) 
 const styles = StyleSheet.create({
   navBar: {
     flexDirection: 'row',
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceSoft,
+    backgroundColor: '#0b0716',
     borderTopWidth: 1,
-    borderTopColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
-    paddingVertical: 6,
+    borderTopColor: 'rgba(212, 175, 55, 0.25)',
+    paddingVertical: 8,
     paddingBottom: 16,
     justifyContent: 'space-around',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
     elevation: 8,
   },
   tabItem: {
     alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
     position: 'relative',
-    minWidth: 64,
+    minWidth: 60,
   },
   tabItemActive: {},
   icon: {
     fontSize: 18,
     opacity: 0.6,
-    marginBottom: 2,
+    marginBottom: 3,
   },
   iconActive: {
     opacity: 1,
-    transform: [{ scale: 1.1 }],
+    transform: [{ scale: 1.08 }],
   },
   label: {
     fontSize: 10,
-    fontWeight: '600',
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+    fontWeight: '500',
+    color: '#9e8cb8',
   },
   labelActive: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontWeight: '800',
+    color: '#f7e7b4',
+    fontWeight: '700',
   },
   activeDot: {
     position: 'absolute',
     bottom: -6,
-    width: 16,
+    width: 14,
     height: 2,
     borderRadius: 1,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
+    backgroundColor: '#d4af37',
   },
 });
+
+export default BottomNav;

@@ -100,8 +100,8 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({
           <Text style={styles.promptDesc}>
             Đăng nhập để theo dõi số dư credits và quản lý lịch sử biến động giao dịch.
           </Text>
-          <TouchableOpacity style={styles.loginBtn} onPress={onGoLogin}>
-            <Text style={styles.loginBtnText}>[ ĐĂNG NHẬP / ĐĂNG KÝ ]</Text>
+          <TouchableOpacity style={styles.btnPrimary} onPress={onGoLogin}>
+            <Text style={styles.btnPrimaryText}>Đăng nhập / Đăng ký</Text>
           </TouchableOpacity>
         </TarotCard>
       </View>
@@ -111,60 +111,90 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({
   return (
     <ScrollView
       contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          tintColor={PALMSIGHT_MOBILE_THEME.colors.gold}
+          tintColor="#d4af37"
         />
       }
     >
       {/* Header */}
       <View style={styles.headerBox}>
-        <Text style={styles.badgeTop}>✦ KHO LINH THẠCH · TÀI CHÍNH</Text>
+        <View style={styles.badgeRow}>
+          <Text style={styles.badgeStar}>✦</Text>
+          <Text style={styles.badgeTop}>KHO LINH THẠCH</Text>
+        </View>
         <Text style={styles.mainTitle}>Ví credits</Text>
         <Text style={styles.mainDesc}>
-          Quản lý số dư và theo dõi chi tiết lịch sử nhận hoặc tiêu thụ credit xem bói.
+          Quản lý số dư và theo dõi lịch sử nạp/dùng credit.
         </Text>
       </View>
 
       {/* Large Balance Card */}
       <TarotCard style={styles.balanceCard}>
-        <Text style={styles.balanceSubTitle}>SỐ DƯ HIỆN CÓ</Text>
-        <Text style={styles.balanceBig}>{user?.creditBalance ?? 0} Credits</Text>
+        <Text style={styles.balanceSubTitle}>SỐ DƯ HIỆN TẠI</Text>
+        <Text style={styles.balanceBig}>{user?.creditBalance ?? 0} credits</Text>
         <Text style={styles.balanceNote}>
-          Credits không có hạn sử dụng. Mỗi lần khai quẻ chỉ tay tiêu thụ 1 credit.
+          Credits không hết hạn. Mỗi lần xem bói tiêu thụ 1 credit.
         </Text>
 
         {/* Quick Actions */}
         <View style={styles.actionsRow}>
+          {user?.referral?.canEnterCode && (
+            <TouchableOpacity
+              style={styles.btnSecondary}
+              onPress={onGoAccount}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.btnSecondaryText}>
+                Nhập mã giới thiệu (+1)
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
-            style={styles.actionPrimaryBtn}
+            style={styles.btnPrimary}
             onPress={onGoScan}
             activeOpacity={0.85}
           >
-            <Text style={styles.actionPrimaryText}>⚡ Xem bói ngay (−1)</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionSecondaryBtn}
-            onPress={onGoAccount}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.actionSecondaryText}>🎁 Nhận thêm credits</Text>
+            <Text style={styles.btnPrimaryText}>Xem bói ngay (−1)</Text>
           </TouchableOpacity>
         </View>
       </TarotCard>
 
+      {/* Invite Friends Referral Card */}
+      <TarotCard style={styles.referralBannerCard} interactive>
+        <Text style={styles.refCardBadge}>🎁 CHIA SẺ NHẬN THƯỞNG</Text>
+        <Text style={styles.refCardTitle}>Mời Bạn Bè Nhận Credits</Text>
+        <Text style={styles.refCardDesc}>
+          Mỗi tài khoản có mã 8 ký tự. Bạn bè nhập mã của bạn: Bạn nhận ngay +2
+          credits, bạn bè nhận +1 credit.
+        </Text>
+        <TouchableOpacity
+          style={styles.btnPrimary}
+          onPress={onGoAccount}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.btnPrimaryText}>
+            Mời bạn bè nhận thêm credits &rarr;
+          </Text>
+        </TouchableOpacity>
+      </TarotCard>
+
       {/* Transactions Section */}
       <View style={styles.txHeaderRow}>
-        <Text style={styles.txHeaderTitle}>✦ Lịch sử biến động credits</Text>
+        <View style={styles.txHeaderLeft}>
+          <Text style={styles.txStar}>✦</Text>
+          <Text style={styles.txHeaderTitle}>Lịch sử biến động credits</Text>
+        </View>
         <Text style={styles.txCount}>{transactions.length} giao dịch</Text>
       </View>
 
       {loading ? (
         <View style={styles.txLoading}>
-          <ActivityIndicator size="small" color={PALMSIGHT_MOBILE_THEME.colors.gold} />
+          <ActivityIndicator size="small" color="#d4af37" />
           <Text style={styles.txLoadingText}>Đang tra cứu số dư...</Text>
         </View>
       ) : transactions.length === 0 ? (
@@ -175,46 +205,48 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({
           </Text>
         </TarotCard>
       ) : (
-        transactions.map((tx) => {
-          const cfg = TYPE_CONFIG[tx.type] || {
-            label: tx.type,
-            isPositive: tx.amount > 0,
-          };
-          const isPos = tx.amount > 0;
-          return (
-            <TarotCard key={tx.id} style={styles.txItem}>
-              <View style={styles.txRow}>
-                <View style={styles.txMainCol}>
-                  <Text style={styles.txTypeLabel}>{cfg.label}</Text>
-                  {tx.note && (
-                    <Text style={styles.txDesc} numberOfLines={2}>
-                      {tx.note}
-                    </Text>
-                  )}
-                  <Text style={styles.txDate}>{formatDate(tx.createdAt)}</Text>
-                </View>
+        <View style={styles.txList}>
+          {transactions.map((tx) => {
+            const cfg = TYPE_CONFIG[tx.type] || {
+              label: tx.type,
+              isPositive: tx.amount > 0,
+            };
+            const isPos = tx.amount > 0;
+            return (
+              <TarotCard key={tx.id} style={styles.txItem} interactive>
+                <View style={styles.txRow}>
+                  <View style={styles.txMainCol}>
+                    <Text style={styles.txTypeLabel}>{cfg.label}</Text>
+                    {tx.note ? (
+                      <Text style={styles.txDesc} numberOfLines={2}>
+                        {tx.note}
+                      </Text>
+                    ) : null}
+                    <Text style={styles.txDate}>{formatDate(tx.createdAt)}</Text>
+                  </View>
 
-                <View
-                  style={[
-                    styles.txAmountBadge,
-                    isPos ? styles.txAmountPositive : styles.txAmountNegative,
-                  ]}
-                >
-                  <Text
+                  <View
                     style={[
-                      styles.txAmountText,
-                      isPos
-                        ? styles.txAmountTextPositive
-                        : styles.txAmountTextNegative,
+                      styles.txAmountBadge,
+                      isPos ? styles.txAmountPositive : styles.txAmountNegative,
                     ]}
                   >
-                    {isPos ? `+${tx.amount}` : tx.amount}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.txAmountText,
+                        isPos
+                          ? styles.txAmountTextPositive
+                          : styles.txAmountTextNegative,
+                      ]}
+                    >
+                      {isPos ? `+${tx.amount}` : tx.amount}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            </TarotCard>
-          );
-        })
+              </TarotCard>
+            );
+          })}
+        </View>
       )}
     </ScrollView>
   );
@@ -222,13 +254,14 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    paddingBottom: 40,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 48,
+    backgroundColor: '#0b0716',
   },
   centerBox: {
     flex: 1,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
+    backgroundColor: '#0b0716',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -237,182 +270,234 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 28,
   },
-  badgeTop: {
-    fontSize: 10,
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    letterSpacing: 2,
-    fontWeight: '700',
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: 4,
   },
+  badgeStar: {
+    color: '#d4af37',
+    fontSize: 11,
+  },
+  badgeTop: {
+    fontSize: 11,
+    color: '#d4af37',
+    letterSpacing: 2,
+    fontWeight: '800',
+  },
   promptTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    marginBottom: 8,
+    fontWeight: '800',
+    color: '#f7e7b4',
+    marginBottom: 10,
   },
   promptDesc: {
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
     fontSize: 13,
+    color: '#d8cbe8',
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
   },
-  loginBtn: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  loginBtnText: {
-    color: '#120a21',
-    fontWeight: '800',
-    fontSize: 13,
-    letterSpacing: 1,
-  },
+
+  // Header Box
   headerBox: {
+    paddingBottom: 14,
     marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(212, 175, 55, 0.25)',
   },
   mainTitle: {
-    fontSize: 26,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#f7e7b4',
+    marginBottom: 4,
   },
   mainDesc: {
     fontSize: 13,
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
-    marginTop: 4,
-    lineHeight: 18,
+    color: '#9e8cb8',
   },
+
+  // Balance Card
   balanceCard: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   balanceSubTitle: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
     fontSize: 11,
-    color: PALMSIGHT_MOBILE_THEME.colors.goldDim,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontWeight: '800',
+    color: '#c5a059',
+    letterSpacing: 1.5,
   },
   balanceBig: {
-    fontSize: 34,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
-    marginVertical: 6,
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#f7e7b4',
+    marginTop: 6,
+    marginBottom: 4,
   },
   balanceNote: {
     fontSize: 12,
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    lineHeight: 18,
-    marginBottom: 16,
+    color: '#9e8cb8',
+    marginBottom: 18,
   },
   actionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
-  actionPrimaryBtn: {
-    flex: 1,
-    height: 44,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionPrimaryText: {
-    color: '#120a21',
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  actionSecondaryBtn: {
-    flex: 1,
-    height: 44,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairlineStrong,
+
+  // Buttons
+  btnPrimary: {
+    backgroundColor: '#d4af37',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    borderColor: 'rgba(255, 243, 209, 0.65)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionSecondaryText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+  btnPrimaryText: {
+    color: '#0b0716',
     fontSize: 13,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
+  btnSecondary: {
+    backgroundColor: 'rgba(27, 18, 51, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.45)',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnSecondaryText: {
+    color: '#f5e6c8',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // Referral Card
+  referralBannerCard: {
+    padding: 18,
+    marginBottom: 20,
+  },
+  refCardBadge: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#d4af37',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  refCardTitle: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#f7e7b4',
+    marginBottom: 6,
+  },
+  refCardDesc: {
+    fontSize: 13,
+    color: '#d8cbe8',
+    lineHeight: 19,
+    marginBottom: 14,
+  },
+
+  // Transactions Header
   txHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingBottom: 10,
     marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(212, 175, 55, 0.25)',
+  },
+  txHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  txStar: {
+    color: '#d4af37',
+    fontSize: 12,
   },
   txHeaderTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#f7e7b4',
   },
   txCount: {
     fontSize: 12,
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+    color: '#9e8cb8',
   },
   txLoading: {
-    padding: 24,
+    paddingVertical: 20,
     alignItems: 'center',
   },
   txLoadingText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+    color: '#9e8cb8',
     fontSize: 12,
     marginTop: 6,
   },
   emptyCard: {
+    padding: 20,
     alignItems: 'center',
-    padding: 24,
   },
   emptyTitle: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    color: '#f7e7b4',
     fontSize: 15,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 4,
   },
   emptyDesc: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+    color: '#9e8cb8',
     fontSize: 12,
     textAlign: 'center',
   },
+
+  txList: {
+    gap: 10,
+  },
   txItem: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
     padding: 14,
-    marginBottom: 8,
   },
   txRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
   },
   txMainCol: {
     flex: 1,
-    marginRight: 10,
   },
   txTypeLabel: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
     fontSize: 14,
     fontWeight: '700',
+    color: '#f7e7b4',
+    marginBottom: 2,
   },
   txDesc: {
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
     fontSize: 12,
-    marginTop: 2,
+    color: '#d8cbe8',
+    marginBottom: 4,
   },
   txDate: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
     fontSize: 11,
-    marginTop: 4,
+    color: '#9e8cb8',
   },
   txAmountBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.full,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
     borderWidth: 1,
   },
   txAmountPositive: {
@@ -424,14 +509,15 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(251, 113, 133, 0.4)',
   },
   txAmountText: {
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   txAmountTextPositive: {
-    color: PALMSIGHT_MOBILE_THEME.colors.success,
+    color: '#34d399',
   },
   txAmountTextNegative: {
-    color: PALMSIGHT_MOBILE_THEME.colors.danger,
+    color: '#fb7185',
   },
 });
 
