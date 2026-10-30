@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,65 +6,102 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
-import { TarotCard } from '../components/TarotCard';
 import { PALMSIGHT_MOBILE_THEME } from '../theme/tokens';
-import { getCreditTransactionsApi } from '../services/api';
+import { TarotCard } from '../components/TarotCard';
+import accountService from '../services/accountService';
+import { formatDate } from '../helpers/common';
+import { useAuth } from '../providers/AuthenticationProvider';
+import {
+  CreditTransactionDto,
+  CreditTransactionType,
+} from '@palmsight/shared';
 
 interface WalletScreenProps {
-  token: string | null;
-  creditBalance: number;
-  onGoReferral: () => void;
   onGoScan: () => void;
+  onGoAccount: () => void;
   onGoLogin: () => void;
 }
 
-const TYPE_LABELS: Record<string, { label: string; positive: boolean }> = {
-  SIGNUP_BONUS: { label: 'Tặng khi tạo tài khoản', positive: true },
-  READING_SPEND: { label: 'Xem bói chỉ tay', positive: false },
-  READING_REFUND: { label: 'Hoàn trả lượt xem bói', positive: true },
-  REFERRAL_BONUS: { label: 'Thưởng giới thiệu bạn bè', positive: true },
-  REFEREE_BONUS: { label: 'Thưởng nhập mã bạn bè', positive: true },
-  ADMIN_ADJUST: { label: 'Điều chỉnh hệ thống', positive: true },
+const TYPE_CONFIG: Record<
+  CreditTransactionType,
+  { label: string; isPositive: boolean }
+> = {
+  [CreditTransactionType.SIGNUP_BONUS]: {
+    label: 'Tặng tân thủ khởi tạo',
+    isPositive: true,
+  },
+  [CreditTransactionType.REFERRAL_BONUS]: {
+    label: 'Thưởng mời bạn bè',
+    isPositive: true,
+  },
+  [CreditTransactionType.REFEREE_BONUS]: {
+    label: 'Nhập mã giới thiệu',
+    isPositive: true,
+  },
+  [CreditTransactionType.READING_SPEND]: {
+    label: 'Khai quẻ xem bói',
+    isPositive: false,
+  },
+  [CreditTransactionType.READING_REFUND]: {
+    label: 'Hoàn lại quẻ bói lỗi',
+    isPositive: true,
+  },
+  [CreditTransactionType.ADMIN_ADJUST]: {
+    label: 'Hệ thống điều chỉnh',
+    isPositive: true,
+  },
 };
 
 export const WalletScreen: React.FC<WalletScreenProps> = ({
-  token,
-  creditBalance,
-  onGoReferral,
   onGoScan,
+  onGoAccount,
   onGoLogin,
 }) => {
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { user, isLogged, refreshProfile } = useAuth();
+  const [transactions, setTransactions] = useState<CreditTransactionDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchTransactions = useCallback(async () => {
+    if (!isLogged) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+    try {
+      const data = await accountService.getCreditTransactions();
+      setTransactions(data?.items || []);
+      refreshProfile();
+    } catch {
+      setTransactions([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [isLogged, refreshProfile]);
 
   useEffect(() => {
-    if (!token) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const data = await getCreditTransactionsApi(token);
-        setTransactions(data?.items || []);
-      } catch (err: any) {
-        console.warn('Lỗi tải giao dịch:', err.message);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [token]);
+    fetchTransactions();
+  }, [fetchTransactions]);
 
-  if (!token) {
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchTransactions();
+  };
+
+  if (!isLogged) {
     return (
-      <View style={styles.centerContainer}>
-        <TarotCard style={styles.authNoticeCard}>
-          <Text style={styles.authNoticeIcon}>🪙</Text>
-          <Text style={styles.authNoticeTitle}>Ví Credits Của Bạn</Text>
-          <Text style={styles.authNoticeDesc}>
-            Vui lòng đăng nhập để kiểm tra số dư và theo dõi lịch sử biến động sổ
-            cái credits.
+      <View style={styles.centerBox}>
+        <TarotCard style={styles.promptCard}>
+          <Text style={styles.badgeTop}>✦ KHO LINH THẠCH</Text>
+          <Text style={styles.promptTitle}>Ví credits</Text>
+          <Text style={styles.promptDesc}>
+            Đăng nhập để theo dõi số dư credits và quản lý lịch sử biến động giao dịch.
           </Text>
-          <TouchableOpacity style={styles.btnPrimary} onPress={onGoLogin}>
-            <Text style={styles.btnPrimaryText}>Đăng Nhập Ngay</Text>
+          <TouchableOpacity style={styles.loginBtn} onPress={onGoLogin}>
+            <Text style={styles.loginBtnText}>[ ĐĂNG NHẬP / ĐĂNG KÝ ]</Text>
           </TouchableOpacity>
         </TarotCard>
       </View>
@@ -72,108 +109,112 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={PALMSIGHT_MOBILE_THEME.colors.gold}
+        />
+      }
+    >
       {/* Header */}
       <View style={styles.headerBox}>
-        <Text style={styles.badgeTop}>✦ KHO LINH THẠCH</Text>
-        <Text style={styles.mainTitle}>Ví Credits</Text>
+        <Text style={styles.badgeTop}>✦ KHO LINH THẠCH · TÀI CHÍNH</Text>
+        <Text style={styles.mainTitle}>Ví credits</Text>
         <Text style={styles.mainDesc}>
-          Quản lý số dư và theo dõi minh bạch từng biến động sổ cái.
+          Quản lý số dư và theo dõi chi tiết lịch sử nhận hoặc tiêu thụ credit xem bói.
         </Text>
       </View>
 
-      {/* Balance Big Card */}
+      {/* Large Balance Card */}
       <TarotCard style={styles.balanceCard}>
-        <Text style={styles.balanceSubtitle}>SỐ DƯ HIỆN TẠI</Text>
-        <Text style={styles.balanceAmount}>{creditBalance} credits</Text>
+        <Text style={styles.balanceSubTitle}>SỐ DƯ HIỆN CÓ</Text>
+        <Text style={styles.balanceBig}>{user?.creditBalance ?? 0} Credits</Text>
         <Text style={styles.balanceNote}>
-          Credits không bao giờ hết hạn. Mỗi lần bói tốn 1 credit.
+          Credits không có hạn sử dụng. Mỗi lần khai quẻ chỉ tay tiêu thụ 1 credit.
         </Text>
 
-        <View style={styles.balanceActions}>
+        {/* Quick Actions */}
+        <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={styles.btnPrimary}
+            style={styles.actionPrimaryBtn}
             onPress={onGoScan}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
-            <Text style={styles.btnPrimaryText}>✨ Xem Bói Ngay (−1)</Text>
+            <Text style={styles.actionPrimaryText}>⚡ Xem bói ngay (−1)</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.btnSecondary}
-            onPress={onGoReferral}
-            activeOpacity={0.8}
+            style={styles.actionSecondaryBtn}
+            onPress={onGoAccount}
+            activeOpacity={0.85}
           >
-            <Text style={styles.btnSecondaryText}>🎁 Nhận Thêm (+2)</Text>
+            <Text style={styles.actionSecondaryText}>🎁 Nhận thêm credits</Text>
           </TouchableOpacity>
         </View>
       </TarotCard>
 
       {/* Transactions Section */}
-      <View style={styles.transHeaderRow}>
-        <Text style={styles.transHeaderTitle}>Lịch Sử Biến Động Credits</Text>
-        <Text style={styles.transCountText}>{transactions.length} giao dịch</Text>
+      <View style={styles.txHeaderRow}>
+        <Text style={styles.txHeaderTitle}>✦ Lịch sử biến động credits</Text>
+        <Text style={styles.txCount}>{transactions.length} giao dịch</Text>
       </View>
 
       {loading ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator
-            size="small"
-            color={PALMSIGHT_MOBILE_THEME.colors.gold}
-          />
-          <Text style={styles.loadingText}>Đang đọc sổ cái...</Text>
+        <View style={styles.txLoading}>
+          <ActivityIndicator size="small" color={PALMSIGHT_MOBILE_THEME.colors.gold} />
+          <Text style={styles.txLoadingText}>Đang tra cứu số dư...</Text>
         </View>
       ) : transactions.length === 0 ? (
-        <TarotCard style={styles.emptyTransCard}>
-          <Text style={styles.emptyTransText}>
-            Chưa có giao dịch biến động credits nào.
+        <TarotCard style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Chưa có biến động giao dịch</Text>
+          <Text style={styles.emptyDesc}>
+            Lịch sử nhận quà đăng ký, nạp credit hoặc xem bói sẽ hiển thị tại đây.
           </Text>
         </TarotCard>
       ) : (
-        <View style={styles.transList}>
-          {transactions.map((t) => {
-            const id = t.id || t._id;
-            const meta = TYPE_LABELS[t.type] || {
-              label: t.type,
-              positive: t.amount > 0,
-            };
-            const isPos = t.amount > 0;
-            const sign = isPos ? '+' : '';
-            const dateStr = new Date(t.createdAt).toLocaleString('vi-VN', {
-              hour: '2-digit',
-              minute: '2-digit',
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-            });
-
-            return (
-              <View key={id} style={styles.transItem}>
-                <View style={styles.transLeft}>
-                  <Text style={styles.transLabel}>{meta.label}</Text>
-                  <Text style={styles.transDate}>{dateStr}</Text>
-                </View>
-
-                <View style={styles.transRight}>
-                  <Text
-                    style={[
-                      styles.transAmount,
-                      isPos ? styles.amountPositive : styles.amountNegative,
-                    ]}
-                  >
-                    {sign}
-                    {t.amount}
-                  </Text>
-                  {t.balanceAfter !== undefined && (
-                    <Text style={styles.transBalanceAfter}>
-                      Dư: {t.balanceAfter}
+        transactions.map((tx) => {
+          const cfg = TYPE_CONFIG[tx.type] || {
+            label: tx.type,
+            isPositive: tx.amount > 0,
+          };
+          const isPos = tx.amount > 0;
+          return (
+            <TarotCard key={tx.id} style={styles.txItem}>
+              <View style={styles.txRow}>
+                <View style={styles.txMainCol}>
+                  <Text style={styles.txTypeLabel}>{cfg.label}</Text>
+                  {tx.note && (
+                    <Text style={styles.txDesc} numberOfLines={2}>
+                      {tx.note}
                     </Text>
                   )}
+                  <Text style={styles.txDate}>{formatDate(tx.createdAt)}</Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.txAmountBadge,
+                    isPos ? styles.txAmountPositive : styles.txAmountNegative,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.txAmountText,
+                      isPos
+                        ? styles.txAmountTextPositive
+                        : styles.txAmountTextNegative,
+                    ]}
+                  >
+                    {isPos ? `+${tx.amount}` : tx.amount}
+                  </Text>
                 </View>
               </View>
-            );
-          })}
-        </View>
+            </TarotCard>
+          );
+        })
       )}
     </ScrollView>
   );
@@ -183,186 +224,215 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     paddingBottom: 40,
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
   },
-  centerContainer: {
+  centerBox: {
     flex: 1,
-    padding: 20,
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
+    alignItems: 'center',
     justifyContent: 'center',
+    padding: 24,
+  },
+  promptCard: {
     alignItems: 'center',
+    padding: 28,
   },
-  authNoticeCard: {
-    padding: 26,
-    alignItems: 'center',
-    width: '100%',
+  badgeTop: {
+    fontSize: 10,
+    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    letterSpacing: 2,
+    fontWeight: '700',
+    marginBottom: 4,
   },
-  authNoticeIcon: {
-    fontSize: 40,
-    marginBottom: 12,
-  },
-  authNoticeTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+  promptTitle: {
+    fontSize: 24,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontWeight: '700',
     color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
     marginBottom: 8,
   },
-  authNoticeDesc: {
-    fontSize: 13,
+  promptDesc: {
     color: PALMSIGHT_MOBILE_THEME.colors.body,
+    fontSize: 13,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
   },
-  headerBox: {
-    marginBottom: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
-    paddingBottom: 14,
+  loginBtn: {
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
   },
-  badgeTop: {
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
-    fontSize: 10,
+  loginBtnText: {
+    color: '#120a21',
     fontWeight: '800',
-    letterSpacing: 1.2,
-    marginBottom: 4,
+    fontSize: 13,
+    letterSpacing: 1,
+  },
+  headerBox: {
+    marginBottom: 16,
   },
   mainTitle: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 26,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontWeight: '700',
     color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
   },
   mainDesc: {
-    fontSize: 12,
+    fontSize: 13,
     color: PALMSIGHT_MOBILE_THEME.colors.body,
     marginTop: 4,
+    lineHeight: 18,
   },
   balanceCard: {
-    padding: 22,
-    marginBottom: 24,
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
+    padding: 20,
+    marginBottom: 20,
   },
-  balanceSubtitle: {
+  balanceSubTitle: {
     fontSize: 11,
-    fontWeight: '800',
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
-    letterSpacing: 1.2,
+    color: PALMSIGHT_MOBILE_THEME.colors.goldDim,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
-  balanceAmount: {
+  balanceBig: {
     fontSize: 34,
-    fontWeight: '900',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontWeight: '700',
+    color: PALMSIGHT_MOBILE_THEME.colors.gold,
     marginVertical: 6,
   },
   balanceNote: {
     fontSize: 12,
     color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    marginBottom: 18,
+    lineHeight: 18,
+    marginBottom: 16,
   },
-  balanceActions: {
+  actionsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
-  btnPrimary: {
+  actionPrimaryBtn: {
     flex: 1,
+    height: 44,
     backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    paddingVertical: 12,
     borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  btnPrimaryText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.canvas,
-    fontWeight: '800',
+  actionPrimaryText: {
+    color: '#120a21',
     fontSize: 13,
+    fontWeight: 'bold',
   },
-  btnSecondary: {
+  actionSecondaryBtn: {
     flex: 1,
+    height: 44,
     backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
-    borderWidth: 1,
     borderColor: PALMSIGHT_MOBILE_THEME.colors.hairlineStrong,
-    paddingVertical: 12,
+    borderWidth: 1,
     borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  btnSecondaryText: {
+  actionSecondaryText: {
     color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontWeight: '700',
     fontSize: 13,
+    fontWeight: 'bold',
   },
-  transHeaderRow: {
+  txHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
-  transHeaderTitle: {
+  txHeaderTitle: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
     color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
   },
-  transCountText: {
-    fontSize: 11,
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-  },
-  loadingBox: {
-    paddingVertical: 30,
-    alignItems: 'center',
-    gap: 8,
-  },
-  loadingText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+  txCount: {
     fontSize: 12,
+    color: PALMSIGHT_MOBILE_THEME.colors.mute,
   },
-  emptyTransCard: {
+  txLoading: {
     padding: 24,
     alignItems: 'center',
   },
-  emptyTransText: {
+  txLoadingText: {
     color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    fontSize: 13,
+    fontSize: 12,
+    marginTop: 6,
   },
-  transList: {
+  emptyCard: {
+    alignItems: 'center',
+    padding: 24,
+  },
+  emptyTitle: {
+    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  emptyDesc: {
+    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  txItem: {
     backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
-    borderWidth: 1,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    overflow: 'hidden',
+    padding: 14,
+    marginBottom: 8,
   },
-  transItem: {
+  txRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: PALMSIGHT_MOBILE_THEME.colors.borderSubtle,
   },
-  transLeft: {
+  txMainCol: {
     flex: 1,
+    marginRight: 10,
   },
-  transLabel: {
-    fontSize: 13,
+  txTypeLabel: {
+    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontSize: 14,
     fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
-    marginBottom: 2,
   },
-  transDate: {
-    fontSize: 11,
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-  },
-  transRight: {
-    alignItems: 'flex-end',
-  },
-  transAmount: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  amountPositive: {
-    color: PALMSIGHT_MOBILE_THEME.colors.success,
-  },
-  amountNegative: {
-    color: PALMSIGHT_MOBILE_THEME.colors.danger,
-  },
-  transBalanceAfter: {
-    fontSize: 10,
-    color: PALMSIGHT_MOBILE_THEME.colors.ash,
+  txDesc: {
+    color: PALMSIGHT_MOBILE_THEME.colors.body,
+    fontSize: 12,
     marginTop: 2,
   },
+  txDate: {
+    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+    fontSize: 11,
+    marginTop: 4,
+  },
+  txAmountBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.full,
+    borderWidth: 1,
+  },
+  txAmountPositive: {
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    borderColor: 'rgba(52, 211, 153, 0.4)',
+  },
+  txAmountNegative: {
+    backgroundColor: 'rgba(251, 113, 133, 0.15)',
+    borderColor: 'rgba(251, 113, 133, 0.4)',
+  },
+  txAmountText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  txAmountTextPositive: {
+    color: PALMSIGHT_MOBILE_THEME.colors.success,
+  },
+  txAmountTextNegative: {
+    color: PALMSIGHT_MOBILE_THEME.colors.danger,
+  },
 });
+
+export default WalletScreen;

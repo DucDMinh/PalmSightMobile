@@ -3,6 +3,7 @@
     "name": "PalmSight",
     "slug": "palmsight",
     "version": "1.0.0",
+    "scheme": "palmsight",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -11,17 +12,49 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.palmsight.app"
+      "bundleIdentifier": "com.palmsight.app",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "palmsight",
+              "com.googleusercontent.apps.1001438141254-j0n1titmkvoqg0d7fbp7qcji3hdj8hv6"
+            ]
+          }
+        ]
+      }
     },
     "android": {
       "package": "com.palmsight.app",
       "adaptiveIcon": {
         "backgroundColor": "#09090b",
         "foregroundImage": "./assets/android-icon-foreground.png"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "palmsight"
+            },
+            {
+              "scheme": "com.palmsight.app"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6282050c-ee43-4a65-b619-63d7ad3bf2fd"
+      }
     }
   }
 }

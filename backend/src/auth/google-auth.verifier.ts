@@ -42,7 +42,10 @@ export class GoogleAuthVerifier {
   }
 
   async verify(idToken: string): Promise<GoogleProfile> {
-    const audience = this.configService.getOrThrow<string>('GOOGLE_CLIENT_ID');
+    const webClientId = this.configService.getOrThrow<string>('GOOGLE_CLIENT_ID');
+    const androidClientId = this.configService.get<string>('GOOGLE_ANDROID_CLIENT_ID');
+    const iosClientId = this.configService.get<string>('GOOGLE_IOS_CLIENT_ID');
+    const audience = [webClientId, androidClientId, iosClientId].filter(Boolean) as string[];
 
     try {
       const ticket = await this.client.verifyIdToken({ idToken, audience });

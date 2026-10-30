@@ -1,494 +1,437 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
   Text,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
-  Alert,
+  RefreshControl,
+  Image,
 } from 'react-native';
-import { TarotCard } from '../components/TarotCard';
 import { PALMSIGHT_MOBILE_THEME } from '../theme/tokens';
+import { TarotCard } from '../components/TarotCard';
+import readingsService from '../services/readingsService';
+import { formatDate } from '../helpers/common';
+import { useAuth } from '../providers/AuthenticationProvider';
 import {
-  getReadingsListApi,
-  deleteReadingApi,
-  describeApiError,
-} from '../services/api';
+  ReadingListItemDto,
+  ReadingDto,
+  ReadingStatus,
+  READING_SCHOOLS,
+  HandOrientation,
+} from '@palmsight/shared';
 
 interface HistoryScreenProps {
-  token: string | null;
   onGoScan: () => void;
   onGoLogin: () => void;
+  onSelectReading: (readingId: string) => void;
 }
 
 export const HistoryScreen: React.FC<HistoryScreenProps> = ({
-  token,
   onGoScan,
   onGoLogin,
+  onSelectReading,
 }) => {
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedReading, setSelectedReading] = useState<any | null>(null);
+  const { isLogged } = useAuth();
+  const [items, setItems] = useState<ReadingListItemDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchHistory = async () => {
-    if (!token) return;
-    setLoading(true);
+  const fetchHistory = useCallback(async () => {
+    if (!isLogged) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     try {
-      const data = await getReadingsListApi(token);
+      const data = await readingsService.getReadings();
       setItems(data?.items || []);
-    } catch (err: any) {
-      console.warn('Lỗi tải lịch sử:', err.message);
+    } catch {
+      setItems([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [isLogged]);
 
   useEffect(() => {
     fetchHistory();
-  }, [token]);
+  }, [fetchHistory]);
 
-  const handleDelete = (id: string) => {
-    Alert.alert(
-      'Xoá quẻ bói',
-      'Bạn có chắc chắn muốn xoá quẻ bói này khỏi lịch sử và xoá ảnh lưu trữ trên mây?',
-      [
-        { text: 'Huỷ', style: 'cancel' },
-        {
-          text: 'Xoá ngay',
-          style: 'destructive',
-          onPress: async () => {
-            if (!token) return;
-            try {
-              await deleteReadingApi(id, token);
-              setItems((prev) => prev.filter((item) => item.id !== id && item._id !== id));
-              if (selectedReading?.id === id || selectedReading?._id === id) {
-                setSelectedReading(null);
-              }
-              Alert.alert('Thành công', 'Đã xoá quẻ bói thành công.');
-            } catch (err: any) {
-              const msg = describeApiError(err, 'Không thể xoá quẻ bói.');
-              Alert.alert('Lỗi', msg);
-            }
-          },
-        },
-      ]
-    );
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchHistory();
   };
 
-  if (!token) {
+  const renderStatusBadge = (status: ReadingStatus) => {
+    switch (status) {
+      case ReadingStatus.DONE:
+        return (
+          <View style={[styles.statusBadge, styles.statusDone]}>
+            <Text style={styles.statusDoneText}>✦ Hoàn tất</Text>
+          </View>
+        );
+      case ReadingStatus.PROCESSING:
+        return (
+          <View style={[styles.statusBadge, styles.statusProcessing]}>
+            <Text style={styles.statusProcessingText}>⏳ Đang giải</Text>
+          </View>
+        );
+      case ReadingStatus.REJECTED:
+        return (
+          <View style={[styles.statusBadge, styles.statusRejected]}>
+            <Text style={styles.statusRejectedText}>⚠️ Bị từ chối</Text>
+          </View>
+        );
+      default:
+        return (
+          <View style={[styles.statusBadge, styles.statusFailed]}>
+            <Text style={styles.statusFailedText}>✕ Thất bại</Text>
+          </View>
+        );
+    }
+  };
+
+  if (!isLogged) {
     return (
       <View style={styles.centerContainer}>
-        <TarotCard style={styles.authNoticeCard}>
-          <Text style={styles.authNoticeIcon}>🔒</Text>
-          <Text style={styles.authNoticeTitle}>Yêu Cầu Đăng Nhập</Text>
-          <Text style={styles.authNoticeDesc}>
-            Vui lòng đăng nhập để lưu trữ và xem lại toàn bộ lịch sử các lần bói chỉ
-            tay của bạn.
+        <TarotCard style={styles.promptCard}>
+          <Text style={styles.promptBadge}>✦ SỔ THIÊN MỆNH</Text>
+          <Text style={styles.promptTitle}>Lịch sử quẻ bói</Text>
+          <Text style={styles.promptDesc}>
+            Đăng nhập tài khoản để lưu trữ vĩnh viễn và xem lại các bản luận giải chỉ tay của bạn mọi lúc.
           </Text>
-          <TouchableOpacity style={styles.btnPrimary} onPress={onGoLogin}>
-            <Text style={styles.btnPrimaryText}>Đăng Nhập Ngay</Text>
+          <TouchableOpacity style={styles.loginBtn} onPress={onGoLogin}>
+            <Text style={styles.loginBtnText}>[ ĐĂNG NHẬP HOẶC ĐĂNG KÝ ]</Text>
           </TouchableOpacity>
         </TarotCard>
       </View>
     );
   }
 
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={PALMSIGHT_MOBILE_THEME.colors.gold} />
+        <Text style={styles.loadingText}>Đang tra cứu cổ thư thiên mệnh...</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Detail Modal View */}
-      {selectedReading ? (
-        <View style={styles.detailWrapper}>
-          <TarotCard style={styles.detailCard}>
-            <TouchableOpacity
-              style={styles.backBtn}
-              onPress={() => setSelectedReading(null)}
-            >
-              <Text style={styles.backBtnText}>&larr; Quay lại danh sách</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.detailTitle}>
-              {selectedReading.school} • {selectedReading.hand === 'RIGHT' ? 'Tay Phải' : 'Tay Trái'}
-            </Text>
-            <Text style={styles.detailDate}>
-              Ngày xem: {new Date(selectedReading.createdAt).toLocaleString('vi-VN')}
-            </Text>
-
-            {selectedReading.imageUrl && (
-              <Image
-                source={{ uri: selectedReading.imageUrl }}
-                style={styles.detailImage}
-                resizeMode="cover"
-              />
-            )}
-
-            {selectedReading.result?.overview && (
-              <View style={styles.subCard}>
-                <Text style={styles.subCardTitle}>✨ Tổng Quan Vận Mệnh</Text>
-                <Text style={styles.subCardText}>
-                  {selectedReading.result.overview}
-                </Text>
+    <View style={styles.container}>
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={PALMSIGHT_MOBILE_THEME.colors.gold}
+          />
+        }
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <View style={styles.headerBox}>
+            <View style={styles.headerRow}>
+              <View>
+                <Text style={styles.badgeTop}>✦ SỔ THIÊN MỆNH · LƯU TRỮ</Text>
+                <Text style={styles.mainTitle}>Lịch sử xem bói</Text>
               </View>
-            )}
-
-            {selectedReading.result?.sections &&
-              Object.entries(selectedReading.result.sections).map(
-                ([k, v]: any) => (
-                  <View key={k} style={styles.subCard}>
-                    <Text style={styles.subCardTitle}>🔹 {v?.title || k}</Text>
-                    <Text style={styles.subCardText}>
-                      {v?.description || v?.content || String(v)}
-                    </Text>
-                  </View>
-                )
-              )}
-
-            {selectedReading.result?.aspects &&
-              Object.entries(selectedReading.result.aspects).map(
-                ([k, v]: any) => (
-                  <View key={k} style={styles.subCard}>
-                    <Text style={styles.subCardTitle}>
-                      🌟 {k.toUpperCase()}
-                    </Text>
-                    <Text style={styles.subCardText}>
-                      {v?.description || v?.content || String(v)}
-                    </Text>
-                  </View>
-                )
-              )}
-
-            {selectedReading.result?.advice && (
-              <View style={[styles.subCard, styles.adviceCard]}>
-                <Text style={styles.subCardTitle}>💡 Lời Khuyên Định Hướng</Text>
-                <Text style={styles.subCardText}>
-                  {selectedReading.result.advice}
-                </Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={styles.btnDelete}
-              onPress={() => handleDelete(selectedReading.id || selectedReading._id)}
-            >
-              <Text style={styles.btnDeleteText}>🗑️ Xoá Quẻ Bói Này</Text>
+              <TouchableOpacity style={styles.newReadingBtn} onPress={onGoScan}>
+                <Text style={styles.newReadingBtnText}>+ Bói mới</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.countText}>
+              Đang lưu giữ {items.length} quẻ bói
+            </Text>
+          </View>
+        }
+        ListEmptyComponent={
+          <TarotCard style={styles.emptyCard}>
+            <Text style={styles.emptyIcon}>📜</Text>
+            <Text style={styles.emptyTitle}>Chưa có quẻ bói nào</Text>
+            <Text style={styles.emptyDesc}>
+              Bạn chưa thực hiện lần xem bói nào. Hãy khai quẻ đầu tiên ngay bây giờ!
+            </Text>
+            <TouchableOpacity style={styles.startScanBtn} onPress={onGoScan}>
+              <Text style={styles.startScanBtnText}>[ BẮT ĐẦU XEM BÓI ]</Text>
             </TouchableOpacity>
           </TarotCard>
-        </View>
-      ) : (
-        /* List View */
-        <View>
-          <View style={styles.headerRow}>
-            <View>
-              <Text style={styles.badgeTop}>✦ SỔ THIÊN MỆNH</Text>
-              <Text style={styles.mainTitle}>Lịch Sử Xem Bói</Text>
-            </View>
+        }
+        renderItem={({ item }) => {
+          const schoolCfg = READING_SCHOOLS[item.school];
+          const schoolName = schoolCfg?.name || item.school;
+          const handName =
+            item.hand === HandOrientation.RIGHT ? 'Tay Phải' : 'Tay Trái';
+
+          return (
             <TouchableOpacity
-              style={styles.btnNewReading}
-              onPress={onGoScan}
               activeOpacity={0.8}
+              onPress={() => onSelectReading(item.id)}
             >
-              <Text style={styles.btnNewReadingText}>+ Quẻ Mới</Text>
-            </TouchableOpacity>
-          </View>
+              <TarotCard style={styles.itemCard}>
+                <View style={styles.itemHeader}>
+                  <View style={styles.schoolBadge}>
+                    <Text style={styles.schoolBadgeText}>✦ {schoolName}</Text>
+                  </View>
+                  <Text style={styles.handBadgeText}>{handName}</Text>
+                  <View style={styles.spacer} />
+                  {renderStatusBadge(item.status)}
+                </View>
 
-          {loading ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator
-                size="large"
-                color={PALMSIGHT_MOBILE_THEME.colors.gold}
-              />
-              <Text style={styles.loadingText}>Đang tải quẻ bói từ mây...</Text>
-            </View>
-          ) : items.length === 0 ? (
-            <TarotCard style={styles.emptyCard}>
-              <Text style={styles.emptyIcon}>📜</Text>
-              <Text style={styles.emptyTitle}>Chưa có quẻ bói nào</Text>
-              <Text style={styles.emptyDesc}>
-                Các lần bạn xem bói chỉ tay sẽ được lưu trữ an toàn và xuất hiện
-                tại đây.
-              </Text>
-              <TouchableOpacity style={styles.btnPrimary} onPress={onGoScan}>
-                <Text style={styles.btnPrimaryText}>✨ Khai Quẻ Ngay (−1 Credit)</Text>
-              </TouchableOpacity>
-            </TarotCard>
-          ) : (
-            <View style={styles.itemsList}>
-              {items.map((item) => {
-                const id = item.id || item._id;
-                const dateStr = new Date(item.createdAt).toLocaleDateString(
-                  'vi-VN'
-                );
-                return (
-                  <TouchableOpacity
-                    key={id}
-                    style={styles.historyItemCard}
-                    onPress={() => setSelectedReading(item)}
-                    activeOpacity={0.85}
-                  >
-                    <View style={styles.itemHeader}>
-                      <View style={styles.schoolBadge}>
-                        <Text style={styles.schoolBadgeText}>
-                          {item.school} • {item.hand === 'RIGHT' ? 'Phải' : 'Trái'}
-                        </Text>
-                      </View>
-                      <Text style={styles.dateText}>{dateStr}</Text>
-                    </View>
-
-                    <Text style={styles.overviewSnippet} numberOfLines={3}>
-                      {item.result?.overview || 'Đang xử lý quẻ bói...'}
+                <View style={styles.itemBody}>
+                  {item.imageUrl && (
+                    <Image
+                      source={{ uri: item.imageUrl }}
+                      style={styles.thumbnail}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View style={styles.summaryWrap}>
+                    <Text style={styles.summaryText} numberOfLines={3}>
+                      {item.summary ||
+                        'Nhấn vào để đọc trọn vẹn toàn bộ bản luận giải chi tiết...'}
                     </Text>
-
-                    <View style={styles.itemFooter}>
-                      <Text style={styles.readMoreText}>Xem chi tiết luận giải &rarr;</Text>
-                      <TouchableOpacity
-                        onPress={() => handleDelete(id)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Text style={styles.deleteIconText}>🗑️</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-        </View>
-      )}
-    </ScrollView>
+                    <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
+                  </View>
+                </View>
+              </TarotCard>
+            </TouchableOpacity>
+          );
+        }}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
+  },
+  listContent: {
     padding: 16,
     paddingBottom: 40,
   },
   centerContainer: {
     flex: 1,
-    padding: 20,
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  authNoticeCard: {
     padding: 24,
+  },
+  loadingText: {
+    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    marginTop: 12,
+    fontSize: 14,
+  },
+  promptCard: {
     alignItems: 'center',
-    width: '100%',
+    padding: 28,
   },
-  authNoticeIcon: {
-    fontSize: 36,
-    marginBottom: 12,
+  promptBadge: {
+    fontSize: 10,
+    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    letterSpacing: 2,
+    fontWeight: '700',
+    marginBottom: 6,
   },
-  authNoticeTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+  promptTitle: {
+    fontSize: 24,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontWeight: '700',
     color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
     marginBottom: 8,
   },
-  authNoticeDesc: {
-    fontSize: 13,
+  promptDesc: {
     color: PALMSIGHT_MOBILE_THEME.colors.body,
+    fontSize: 13,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
   },
+  loginBtn: {
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  loginBtnText: {
+    color: '#120a21',
+    fontWeight: '800',
+    fontSize: 13,
+    letterSpacing: 1,
+  },
+  headerBox: {
+    marginBottom: 16,
+  },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
-    paddingBottom: 14,
+    alignItems: 'center',
   },
   badgeTop: {
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
+    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
     fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
+    fontWeight: '700',
+    letterSpacing: 2,
     marginBottom: 4,
   },
   mainTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 26,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontWeight: '700',
     color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
   },
-  btnNewReading: {
+  countText: {
+    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  newReadingBtn: {
     backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    paddingHorizontal: 14,
     paddingVertical: 8,
+    paddingHorizontal: 14,
     borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
   },
-  btnNewReadingText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.canvas,
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  loadingBox: {
-    paddingVertical: 60,
-    alignItems: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+  newReadingBtnText: {
+    color: '#120a21',
     fontSize: 13,
+    fontWeight: 'bold',
   },
   emptyCard: {
-    padding: 30,
     alignItems: 'center',
+    padding: 32,
+    marginTop: 20,
   },
   emptyIcon: {
     fontSize: 40,
     marginBottom: 12,
   },
   emptyTitle: {
-    fontSize: 17,
-    fontWeight: '800',
     color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontSize: 18,
+    fontWeight: 'bold',
     marginBottom: 6,
   },
   emptyDesc: {
-    fontSize: 12,
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
+    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+    fontSize: 13,
     textAlign: 'center',
     lineHeight: 18,
-    marginBottom: 18,
+    marginBottom: 20,
   },
-  itemsList: {
-    gap: 12,
-  },
-  historyItemCard: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
-    borderWidth: 1,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
+  startScanBtn: {
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
     borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    padding: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  startScanBtnText: {
+    color: '#120a21',
+    fontWeight: '800',
+    fontSize: 13,
+    letterSpacing: 1,
+  },
+  itemCard: {
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
+    padding: 16,
+    marginBottom: 12,
   },
   itemHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   schoolBadge: {
     backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.full,
     borderWidth: 1,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairlineStrong,
+    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
+    marginRight: 6,
   },
   schoolBadgeText: {
     color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
     fontSize: 11,
     fontWeight: '700',
   },
-  dateText: {
+  handBadgeText: {
     color: PALMSIGHT_MOBILE_THEME.colors.mute,
     fontSize: 11,
   },
-  overviewSnippet: {
-    fontSize: 13,
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
-    lineHeight: 19,
-    marginBottom: 10,
+  spacer: {
+    flex: 1,
   },
-  itemFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
-    paddingTop: 8,
+  statusBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.full,
   },
-  readMoreText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
-    fontSize: 12,
+  statusDone: {
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    borderColor: 'rgba(52, 211, 153, 0.4)',
+    borderWidth: 1,
+  },
+  statusDoneText: {
+    color: PALMSIGHT_MOBILE_THEME.colors.success,
+    fontSize: 10,
     fontWeight: '700',
   },
-  deleteIconText: {
-    fontSize: 14,
+  statusProcessing: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    borderWidth: 1,
   },
-  detailWrapper: {
-    paddingVertical: 10,
-  },
-  detailCard: {
-    padding: 18,
-  },
-  backBtn: {
-    marginBottom: 14,
-  },
-  backBtnText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
-    fontSize: 13,
+  statusProcessingText: {
+    color: PALMSIGHT_MOBILE_THEME.colors.warning,
+    fontSize: 10,
     fontWeight: '700',
   },
-  detailTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    marginBottom: 4,
-  },
-  detailDate: {
-    fontSize: 12,
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    marginBottom: 14,
-  },
-  detailImage: {
-    width: '100%',
-    height: 220,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+  statusRejected: {
+    backgroundColor: 'rgba(251, 113, 133, 0.15)',
+    borderColor: 'rgba(251, 113, 133, 0.4)',
     borderWidth: 1,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairlineStrong,
-    marginBottom: 16,
   },
-  subCard: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceSoft,
-    padding: 14,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    borderWidth: 1,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
-    marginBottom: 12,
-  },
-  adviceCard: {
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    backgroundColor: 'rgba(212, 175, 55, 0.08)',
-  },
-  subCardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    marginBottom: 6,
-  },
-  subCardText: {
-    fontSize: 13,
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
-    lineHeight: 20,
-  },
-  btnDelete: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.danger,
-    paddingVertical: 12,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  btnDeleteText: {
+  statusRejectedText: {
     color: PALMSIGHT_MOBILE_THEME.colors.danger,
+    fontSize: 10,
     fontWeight: '700',
-    fontSize: 13,
   },
-  btnPrimary: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    alignItems: 'center',
+  statusFailed: {
+    backgroundColor: 'rgba(251, 113, 133, 0.1)',
   },
-  btnPrimaryText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.canvas,
-    fontWeight: '800',
+  statusFailedText: {
+    color: PALMSIGHT_MOBILE_THEME.colors.danger,
+    fontSize: 10,
+  },
+  itemBody: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  thumbnail: {
+    width: 64,
+    height: 64,
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
+  },
+  summaryWrap: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  summaryText: {
+    color: PALMSIGHT_MOBILE_THEME.colors.ink,
     fontSize: 13,
+    lineHeight: 18,
+  },
+  dateText: {
+    color: PALMSIGHT_MOBILE_THEME.colors.mute,
+    fontSize: 11,
+    marginTop: 4,
   },
 });
+
+export default HistoryScreen;
