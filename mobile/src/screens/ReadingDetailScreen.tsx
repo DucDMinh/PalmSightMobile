@@ -108,6 +108,7 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
   const [activeLine, setActiveLine] = useState<MajorPalmLineKey | null>(null);
   const [highlightedSectionKey, setHighlightedSectionKey] = useState<string | null>(null);
   const [imageLayout, setImageLayout] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
 
   const handleImageTouch = (evt: any) => {
     if (!imageLayout.width || !imageLayout.height) return;
@@ -116,7 +117,7 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
     const normY = locationY / imageLayout.height;
 
     // CHỈ so khớp với 3 đường chính: heart, head, life!
-    const validLines = (reading?.palmLines || []).filter(
+    const validLines = effectiveLines.filter(
       (l) => l.name === 'heart' || l.name === 'head' || l.name === 'life'
     );
 
@@ -182,9 +183,9 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
   }, [reading?.palmLines, reading?.hand]);
 
   const selectedLineData = useMemo(() => {
-    if (!activeLine || !reading?.palmLines) return null;
-    return reading.palmLines.find((l) => l.name === activeLine);
-  }, [activeLine, reading?.palmLines]);
+    if (!activeLine || effectiveLines.length === 0) return null;
+    return effectiveLines.find((l) => l.name === activeLine);
+  }, [activeLine, effectiveLines]);
 
   const selectedPointsStr = useMemo(() => {
     if (
@@ -304,6 +305,20 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
       ? reading.annotatedImageUrl
       : reading.imageUrl || reading.annotatedImageUrl;
 
+  useEffect(() => {
+    if (currentDisplayImage) {
+      Image.getSize(
+        currentDisplayImage,
+        (w, h) => {
+          if (w > 0 && h > 0) {
+            setImageAspectRatio(w / h);
+          }
+        },
+        () => {}
+      );
+    }
+  }, [currentDisplayImage]);
+
   const activeLineInfo = activeLine
     ? getPalmLineDisplayInfo(activeLine, reading.school)
     : null;
@@ -341,7 +356,10 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
             <View style={styles.palmViewerSection}>
               {/* Khung ảnh lòng bàn tay kèm lớp vẽ SVG đè lên trên */}
               <View
-                style={styles.palmImageWrapper}
+                style={[
+                  styles.palmImageWrapper,
+                  imageAspectRatio ? { aspectRatio: imageAspectRatio } : null,
+                ]}
                 onLayout={(e) => {
                   const { width, height } = e.nativeEvent.layout;
                   setImageLayout({ width, height });
@@ -352,57 +370,11 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
                 <Image
                   source={{ uri: currentDisplayImage }}
                   style={styles.palmImage}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
 
-                {/* HIỆU ỨNG PHÁT SÁNG KHI ĐƯỜNG CHỈ TAY ĐƯỢC BẤM VÀO */}
-                {selectedLineData && selectedPointsStr ? (
-                  <Svg
-                    viewBox="0 0 100 100"
-                    preserveAspectRatio="none"
-                    style={StyleSheet.absoluteFill}
-                    pointerEvents="none"
-                  >
-                    {/* Vầng hào quang sáng rộng bên ngoài */}
-                    <Polyline
-                      points={selectedPointsStr}
-                      fill="none"
-                      stroke={
-                        PALM_LINE_COLORS[selectedLineData.name as MajorPalmLineKey] ||
-                        '#ff2d55'
-                      }
-                      strokeWidth="12"
-                      strokeOpacity="0.45"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    {/* Lõi sáng trắng rực rỡ */}
-                    <Polyline
-                      points={selectedPointsStr}
-                      fill="none"
-                      stroke="#ffffff"
-                      strokeWidth="6"
-                      strokeOpacity="0.85"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    {/* Đường nét chính phát quang sắc nét */}
-                    <Polyline
-                      points={selectedPointsStr}
-                      fill="none"
-                      stroke={
-                        PALM_LINE_COLORS[selectedLineData.name as MajorPalmLineKey] ||
-                        '#ff2d55'
-                      }
-                      strokeWidth="3.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </Svg>
-                ) : null}
-
-                {/* Lớp vẽ các đường AI ONNX trực tiếp nếu ảnh chưa có annotatedImageUrl */}
-                {!reading.annotatedImageUrl && showAnnotated && effectiveLines.length > 0 && (
+                {/* 1. LỚP VẼ 3 ĐƯỜNG CHỈ TAY CHÍNH: TÂM ĐẠO, TRÍ ĐẠO, SINH ĐẠO */}
+                {showAnnotated && effectiveLines.length > 0 && (
                   <Svg
                     viewBox="0 0 100 100"
                     preserveAspectRatio="none"
@@ -421,14 +393,15 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
                         })
                         .join(' ');
                       const strokeColor = PALM_LINE_COLORS[key] || '#ff2d55';
+                      const isSelected = activeLine === key;
                       return (
                         <Polyline
                           key={key}
                           points={pts}
                           fill="none"
                           stroke={strokeColor}
-                          strokeWidth="3.5"
-                          strokeOpacity="0.9"
+                          strokeWidth={isSelected ? '4.5' : '3.5'}
+                          strokeOpacity={isSelected ? 1 : 0.75}
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
@@ -436,6 +409,53 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
                     })}
                   </Svg>
                 )}
+
+                {/* 2. HIỆU ỨNG PHÁT SÁNG NỔI BẬT KHI ĐƯỜNG CHỈ TAY ĐƯỢC CHỌN (VẼ ĐÈ LÊN TRÊN) */}
+                {showAnnotated && selectedLineData && selectedPointsStr ? (
+                  <Svg
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  >
+                    {/* Vầng hào quang sáng rộng bên ngoài */}
+                    <Polyline
+                      points={selectedPointsStr}
+                      fill="none"
+                      stroke={
+                        PALM_LINE_COLORS[selectedLineData.name as MajorPalmLineKey] ||
+                        '#ff2d55'
+                      }
+                      strokeWidth="15"
+                      strokeOpacity="0.45"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    {/* Vầng sáng trung gian sắc nét */}
+                    <Polyline
+                      points={selectedPointsStr}
+                      fill="none"
+                      stroke={
+                        PALM_LINE_COLORS[selectedLineData.name as MajorPalmLineKey] ||
+                        '#ff2d55'
+                      }
+                      strokeWidth="8"
+                      strokeOpacity="0.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    {/* Lõi sáng trắng rực rỡ */}
+                    <Polyline
+                      points={selectedPointsStr}
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth="3.5"
+                      strokeOpacity="0.95"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </Svg>
+                ) : null}
 
                 {/* Huy hiệu hướng dẫn chạm trên ảnh */}
                 <View style={styles.imageOverlayHint}>
@@ -789,7 +809,7 @@ const styles = StyleSheet.create({
   },
   palmImageWrapper: {
     width: '100%',
-    aspectRatio: 1,
+    aspectRatio: 0.75,
     maxHeight: 220,
     alignSelf: 'center',
     borderRadius: 8,
