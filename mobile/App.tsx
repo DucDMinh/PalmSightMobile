@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, SafeAreaView, View } from 'react-native';
+import { StyleSheet, SafeAreaView, View, LogBox, Platform, StatusBar as RNStatusBar } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
 import { PALMSIGHT_MOBILE_THEME } from './src/theme/tokens';
 
+LogBox.ignoreAllLogs();
 WebBrowser.maybeCompleteAuthSession();
 import { AuthenticationProvider, useAuth } from './src/providers/AuthenticationProvider';
 import { MysticHeader } from './src/components/MysticHeader';
@@ -196,6 +197,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
+    paddingTop: Platform.OS === 'android' ? Math.max(RNStatusBar.currentHeight || 0, 48) : 0,
   },
   body: {
     flex: 1,

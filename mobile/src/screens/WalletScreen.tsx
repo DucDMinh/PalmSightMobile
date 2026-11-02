@@ -8,15 +8,19 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { PALMSIGHT_MOBILE_THEME } from '../theme/tokens';
 import { TarotCard } from '../components/TarotCard';
 import accountService from '../services/accountService';
 import { formatDate } from '../helpers/common';
 import { useAuth } from '../providers/AuthenticationProvider';
+import { showSuccess } from '../helpers/toast';
 import {
   CreditTransactionDto,
   CreditTransactionType,
 } from '@palmsight/shared';
+import { MysticButton } from '../components/MysticButton';
+import { MysticBadge } from '../components/MysticBadge';
 
 interface WalletScreenProps {
   onGoScan: () => void;
@@ -26,31 +30,37 @@ interface WalletScreenProps {
 
 const TYPE_CONFIG: Record<
   CreditTransactionType,
-  { label: string; isPositive: boolean }
+  { label: string; isPositive: boolean; icon: string }
 > = {
   [CreditTransactionType.SIGNUP_BONUS]: {
     label: 'Tặng tân thủ khởi tạo',
     isPositive: true,
+    icon: '🎁',
   },
   [CreditTransactionType.REFERRAL_BONUS]: {
     label: 'Thưởng mời bạn bè',
     isPositive: true,
+    icon: '👥',
   },
   [CreditTransactionType.REFEREE_BONUS]: {
     label: 'Nhập mã giới thiệu',
     isPositive: true,
+    icon: '✨',
   },
   [CreditTransactionType.READING_SPEND]: {
     label: 'Khai quẻ xem bói',
     isPositive: false,
+    icon: '🔮',
   },
   [CreditTransactionType.READING_REFUND]: {
-    label: 'Hoàn lại quẻ bói lỗi',
+    label: 'Hoàn quẻ bói không hợp lệ',
     isPositive: true,
+    icon: '↩',
   },
   [CreditTransactionType.ADMIN_ADJUST]: {
     label: 'Hệ thống điều chỉnh',
     isPositive: true,
+    icon: '⚙',
   },
 };
 
@@ -63,6 +73,7 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({
   const [transactions, setTransactions] = useState<CreditTransactionDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
 
   const fetchTransactions = useCallback(async () => {
     if (!isLogged) {
@@ -91,22 +102,41 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({
     fetchTransactions();
   };
 
+  const handleCopyCode = async () => {
+    if (!user?.referralCode) return;
+    try {
+      await Clipboard.setStringAsync(user.referralCode);
+      showSuccess(`Đã sao chép mã: ${user.referralCode}`, 'Giới thiệu bạn bè');
+    } catch {}
+  };
+
   if (!isLogged) {
     return (
       <View style={styles.centerBox}>
         <TarotCard style={styles.promptCard}>
-          <Text style={styles.badgeTop}>✦ KHO LINH THẠCH</Text>
-          <Text style={styles.promptTitle}>Ví credits</Text>
+          <Text style={styles.badgeTop}>✦ KHO LINH THẠCH ✦</Text>
+          <Text style={styles.promptTitle}>Ví Credits</Text>
           <Text style={styles.promptDesc}>
-            Đăng nhập để theo dõi số dư credits và quản lý lịch sử biến động giao dịch.
+            Đăng nhập để nhận 3 credits miễn phí ban đầu, quản lý số dư và chia sẻ mã giới thiệu nhận thêm credits.
           </Text>
-          <TouchableOpacity style={styles.btnPrimary} onPress={onGoLogin}>
-            <Text style={styles.btnPrimaryText}>Đăng nhập / Đăng ký</Text>
-          </TouchableOpacity>
+          <MysticButton
+            title="Đăng nhập / Đăng ký"
+            icon="✨"
+            variant="primary"
+            size="md"
+            onPress={onGoLogin}
+            fullWidth
+          />
         </TarotCard>
       </View>
     );
   }
+
+  const filteredTx = transactions.filter((tx) => {
+    if (filterType === 'income') return tx.amount > 0;
+    if (filterType === 'expense') return tx.amount < 0;
+    return true;
+  });
 
   return (
     <ScrollView
@@ -116,407 +146,424 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({
         <RefreshControl
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          tintColor="#d4af37"
+          tintColor={PALMSIGHT_MOBILE_THEME.colors.gold}
         />
       }
     >
-      {/* Header */}
-      <View style={styles.headerBox}>
-        <View style={styles.badgeRow}>
-          <Text style={styles.badgeStar}>✦</Text>
-          <Text style={styles.badgeTop}>KHO LINH THẠCH</Text>
-        </View>
-        <Text style={styles.mainTitle}>Ví credits</Text>
-        <Text style={styles.mainDesc}>
-          Quản lý số dư và theo dõi lịch sử nạp/dùng credit.
-        </Text>
-      </View>
-
-      {/* Large Balance Card */}
+      {/* 1. BALANCE CARD */}
       <TarotCard style={styles.balanceCard}>
-        <Text style={styles.balanceSubTitle}>SỐ DƯ HIỆN TẠI</Text>
-        <Text style={styles.balanceBig}>{user?.creditBalance ?? 0} credits</Text>
-        <Text style={styles.balanceNote}>
-          Credits không hết hạn. Mỗi lần xem bói tiêu thụ 1 credit.
+        <View style={styles.balanceHeader}>
+          <MysticBadge label="KHO LINH THẠCH PALMSIGHT" icon="🪙" variant="gold" size="sm" />
+          <TouchableOpacity onPress={handleRefresh} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={styles.refreshIcon}>↻</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.balanceNumberRow}>
+          <Text style={styles.balanceValue}>{user?.creditBalance ?? 0}</Text>
+          <Text style={styles.balanceUnit}>CREDITS</Text>
+        </View>
+
+        <Text style={styles.balanceRuleText}>
+          ✦ 1 Credit = 1 lần xem bói đầy đủ · Credits không bao giờ hết hạn
         </Text>
 
-        {/* Quick Actions */}
-        <View style={styles.actionsRow}>
-          {user?.referral?.canEnterCode && (
-            <TouchableOpacity
-              style={styles.btnSecondary}
-              onPress={onGoAccount}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.btnSecondaryText}>
-                Nhập mã giới thiệu (+1)
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={styles.btnPrimary}
+        <View style={styles.balanceActionsRow}>
+          <MysticButton
+            title="Dùng 1 credit xem bói ngay"
+            icon="✨"
+            variant="primary"
+            size="md"
             onPress={onGoScan}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.btnPrimaryText}>Xem bói ngay (−1)</Text>
-          </TouchableOpacity>
+            style={{ flex: 1 }}
+          />
         </View>
       </TarotCard>
 
-      {/* Invite Friends Referral Card */}
-      <TarotCard style={styles.referralBannerCard} interactive>
-        <Text style={styles.refCardBadge}>🎁 CHIA SẺ NHẬN THƯỞNG</Text>
-        <Text style={styles.refCardTitle}>Mời Bạn Bè Nhận Credits</Text>
-        <Text style={styles.refCardDesc}>
-          Mỗi tài khoản có mã 8 ký tự. Bạn bè nhập mã của bạn: Bạn nhận ngay +2
-          credits, bạn bè nhận +1 credit.
-        </Text>
+      {/* 2. REFERRAL INVITE CARD */}
+      <TarotCard style={styles.inviteCard}>
+        <View style={styles.inviteHeader}>
+          <Text style={styles.inviteRune}>✨</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.inviteTitle}>Nhận thêm credits miễn phí</Text>
+            <Text style={styles.inviteSubtitle}>
+              Mời bạn bè: Bạn nhận +2 credits, người nhập nhận +1 credit ngay lập tức!
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.codeRow}>
+          <View style={styles.codeBox}>
+            <Text style={styles.codeLabel}>MÃ CỦA BẠN</Text>
+            <Text style={styles.codeValue}>{user?.referralCode || '...'}</Text>
+          </View>
+          <MysticButton
+            title="Sao chép"
+            variant="secondary"
+            size="sm"
+            onPress={handleCopyCode}
+          />
+        </View>
+
         <TouchableOpacity
-          style={styles.btnPrimary}
+          style={styles.manageReferralLink}
           onPress={onGoAccount}
-          activeOpacity={0.8}
+          activeOpacity={0.7}
         >
-          <Text style={styles.btnPrimaryText}>
-            Mời bạn bè nhận thêm credits &rarr;
+          <Text style={styles.manageReferralText}>
+            Nhập mã người khác hoặc xem chi tiết chia sẻ →
           </Text>
         </TouchableOpacity>
       </TarotCard>
 
-      {/* Transactions Section */}
-      <View style={styles.txHeaderRow}>
-        <View style={styles.txHeaderLeft}>
-          <Text style={styles.txStar}>✦</Text>
-          <Text style={styles.txHeaderTitle}>Lịch sử biến động credits</Text>
+      {/* 3. TRANSACTION HISTORY */}
+      <View style={styles.historySection}>
+        <View style={styles.historyHeaderRow}>
+          <Text style={styles.historyTitle}>Lịch sử biến động credits</Text>
+          <Text style={styles.historyCount}>{transactions.length} giao dịch</Text>
         </View>
-        <Text style={styles.txCount}>{transactions.length} giao dịch</Text>
-      </View>
 
-      {loading ? (
-        <View style={styles.txLoading}>
-          <ActivityIndicator size="small" color="#d4af37" />
-          <Text style={styles.txLoadingText}>Đang tra cứu số dư...</Text>
+        {/* Filter Pills */}
+        <View style={styles.filterPillsRow}>
+          <TouchableOpacity
+            style={[styles.filterPill, filterType === 'all' && styles.filterPillActive]}
+            onPress={() => setFilterType('all')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterPillText, filterType === 'all' && styles.filterPillTextActive]}>
+              Tất cả
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterPill, filterType === 'income' && styles.filterPillActive]}
+            onPress={() => setFilterType('income')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterPillText, filterType === 'income' && styles.filterPillTextActive]}>
+              Nhận được (+)
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterPill, filterType === 'expense' && styles.filterPillActive]}
+            onPress={() => setFilterType('expense')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterPillText, filterType === 'expense' && styles.filterPillTextActive]}>
+              Chi tiêu (-)
+            </Text>
+          </TouchableOpacity>
         </View>
-      ) : transactions.length === 0 ? (
-        <TarotCard style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>Chưa có biến động giao dịch</Text>
-          <Text style={styles.emptyDesc}>
-            Lịch sử nhận quà đăng ký, nạp credit hoặc xem bói sẽ hiển thị tại đây.
-          </Text>
-        </TarotCard>
-      ) : (
-        <View style={styles.txList}>
-          {transactions.map((tx) => {
-            const cfg = TYPE_CONFIG[tx.type] || {
-              label: tx.type,
-              isPositive: tx.amount > 0,
-            };
-            const isPos = tx.amount > 0;
-            return (
-              <TarotCard key={tx.id} style={styles.txItem} interactive>
-                <View style={styles.txRow}>
-                  <View style={styles.txMainCol}>
-                    <Text style={styles.txTypeLabel}>{cfg.label}</Text>
-                    {tx.note ? (
-                      <Text style={styles.txDesc} numberOfLines={2}>
-                        {tx.note}
-                      </Text>
-                    ) : null}
-                    <Text style={styles.txDate}>{formatDate(tx.createdAt)}</Text>
-                  </View>
 
-                  <View
-                    style={[
-                      styles.txAmountBadge,
-                      isPos ? styles.txAmountPositive : styles.txAmountNegative,
-                    ]}
-                  >
-                    <Text
+        {loading ? (
+          <View style={styles.txLoadingBox}>
+            <ActivityIndicator size="small" color="#d4af37" />
+          </View>
+        ) : filteredTx.length === 0 ? (
+          <TarotCard style={styles.txEmptyCard}>
+            <Text style={styles.txEmptyText}>Không có giao dịch nào trong danh mục này.</Text>
+          </TarotCard>
+        ) : (
+          <View style={styles.txList}>
+            {filteredTx.map((tx) => {
+              const cfg = TYPE_CONFIG[tx.type] || {
+                label: tx.note || 'Giao dịch credits',
+                isPositive: tx.amount > 0,
+                icon: '🪙',
+              };
+              const isPositive = tx.amount > 0;
+
+              return (
+                <TarotCard key={tx.id} style={styles.txCard}>
+                  <View style={styles.txCardLeft}>
+                    <View
                       style={[
-                        styles.txAmountText,
-                        isPos
-                          ? styles.txAmountTextPositive
-                          : styles.txAmountTextNegative,
+                        styles.txIconBox,
+                        isPositive ? styles.txIconBoxPlus : styles.txIconBoxMinus,
                       ]}
                     >
-                      {isPos ? `+${tx.amount}` : tx.amount}
-                    </Text>
+                      <Text style={styles.txIcon}>{cfg.icon}</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.txName}>{cfg.label}</Text>
+                      <Text style={styles.txDate}>{formatDate(tx.createdAt)}</Text>
+                    </View>
                   </View>
-                </View>
-              </TarotCard>
-            );
-          })}
-        </View>
-      )}
+
+                  <Text
+                    style={[
+                      styles.txAmount,
+                      isPositive ? styles.txAmountPlus : styles.txAmountMinus,
+                    ]}
+                  >
+                    {isPositive ? `+${tx.amount}` : tx.amount}
+                  </Text>
+                </TarotCard>
+              );
+            })}
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 48,
-    backgroundColor: '#0b0716',
+    padding: 16,
+    paddingBottom: 40,
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
+    gap: 14,
   },
   centerBox: {
     flex: 1,
-    backgroundColor: '#0b0716',
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    padding: 20,
   },
   promptCard: {
     alignItems: 'center',
-    padding: 28,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
-  badgeStar: {
-    color: '#d4af37',
-    fontSize: 11,
-  },
-  badgeTop: {
-    fontSize: 11,
-    color: '#d4af37',
-    letterSpacing: 2,
-    fontWeight: '800',
-  },
-  promptTitle: {
-    fontSize: 26,
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '800',
-    color: '#f7e7b4',
-    marginBottom: 10,
-  },
-  promptDesc: {
-    fontSize: 13,
-    color: '#d8cbe8',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-
-  // Header Box
-  headerBox: {
-    paddingBottom: 14,
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(212, 175, 55, 0.25)',
-  },
-  mainTitle: {
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#f7e7b4',
-    marginBottom: 4,
-  },
-  mainDesc: {
-    fontSize: 13,
-    color: '#9e8cb8',
-  },
-
-  // Balance Card
-  balanceCard: {
-    padding: 20,
-    marginBottom: 16,
-  },
-  balanceSubTitle: {
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#c5a059',
-    letterSpacing: 1.5,
-  },
-  balanceBig: {
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#f7e7b4',
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  balanceNote: {
-    fontSize: 12,
-    color: '#9e8cb8',
-    marginBottom: 18,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-
-  // Buttons
-  btnPrimary: {
-    backgroundColor: '#d4af37',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 243, 209, 0.65)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnPrimaryText: {
-    color: '#0b0716',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  btnSecondary: {
-    backgroundColor: 'rgba(27, 18, 51, 0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.45)',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 9999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnSecondaryText: {
-    color: '#f5e6c8',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  // Referral Card
-  referralBannerCard: {
-    padding: 18,
-    marginBottom: 20,
-  },
-  refCardBadge: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#d4af37',
-    letterSpacing: 1.5,
-    marginBottom: 6,
-  },
-  refCardTitle: {
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#f7e7b4',
-    marginBottom: 6,
-  },
-  refCardDesc: {
-    fontSize: 13,
-    color: '#d8cbe8',
-    lineHeight: 19,
-    marginBottom: 14,
-  },
-
-  // Transactions Header
-  txHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 10,
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(212, 175, 55, 0.25)',
-  },
-  txHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  txStar: {
-    color: '#d4af37',
-    fontSize: 12,
-  },
-  txHeaderTitle: {
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#f7e7b4',
-  },
-  txCount: {
-    fontSize: 12,
-    color: '#9e8cb8',
-  },
-  txLoading: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  txLoadingText: {
-    color: '#9e8cb8',
-    fontSize: 12,
-    marginTop: 6,
-  },
-  emptyCard: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  emptyTitle: {
-    color: '#f7e7b4',
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  emptyDesc: {
-    color: '#9e8cb8',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-
-  txList: {
-    gap: 10,
-  },
-  txItem: {
-    padding: 14,
-  },
-  txRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    padding: 24,
+    width: '100%',
     gap: 12,
   },
-  txMainCol: {
-    flex: 1,
+  badgeTop: {
+    fontSize: 10.5,
+    color: '#d4af37',
+    letterSpacing: 2,
+    fontWeight: '700',
   },
-  txTypeLabel: {
-    fontSize: 14,
+  promptTitle: {
+    fontSize: 22,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontWeight: '700',
+    color: '#f5e6c8',
+  },
+  promptDesc: {
+    fontSize: 13.5,
+    color: '#9e8cb8',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+
+  // BALANCE CARD
+  balanceCard: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#1f1438',
+  },
+  balanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 12,
+  },
+  refreshIcon: {
+    fontSize: 18,
+    color: '#d4af37',
+  },
+  balanceNumberRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginVertical: 4,
+  },
+  balanceValue: {
+    fontSize: 54,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
     fontWeight: '700',
     color: '#f7e7b4',
-    marginBottom: 2,
+    lineHeight: 60,
   },
-  txDesc: {
+  balanceUnit: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#d4af37',
+    letterSpacing: 1.5,
+  },
+  balanceRuleText: {
     fontSize: 12,
     color: '#d8cbe8',
-    marginBottom: 4,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 16,
   },
-  txDate: {
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
-    fontSize: 11,
+  balanceActionsRow: {
+    width: '100%',
+  },
+
+  // INVITE CARD
+  inviteCard: {
+    padding: 16,
+    gap: 12,
+  },
+  inviteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  inviteRune: {
+    fontSize: 24,
+  },
+  inviteTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#f5e6c8',
+  },
+  inviteSubtitle: {
+    fontSize: 12,
+    color: '#9e8cb8',
+    marginTop: 2,
+    lineHeight: 17,
+  },
+  codeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    padding: 12,
+  },
+  codeLabel: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#d4af37',
+    letterSpacing: 1,
+  },
+  codeValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff3d1',
+    letterSpacing: 2,
+    marginTop: 2,
+  },
+  codeBox: {
+    justifyContent: 'center',
+  },
+  manageReferralLink: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  manageReferralText: {
+    fontSize: 12,
+    color: '#d4af37',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+
+  // HISTORY SECTION
+  historySection: {
+    marginTop: 6,
+    gap: 10,
+  },
+  historyHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  historyTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#f5e6c8',
+  },
+  historyCount: {
+    fontSize: 12,
+    color: '#7e6d99',
+  },
+  filterPillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterPill: {
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.full,
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.25)',
+  },
+  filterPillActive: {
+    backgroundColor: 'rgba(212, 175, 55, 0.2)',
+    borderColor: '#d4af37',
+  },
+  filterPillText: {
+    fontSize: 11.5,
+    color: '#9e8cb8',
+    fontWeight: '500',
+  },
+  filterPillTextActive: {
+    color: '#f7e7b4',
+    fontWeight: '700',
+  },
+
+  txLoadingBox: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  txEmptyCard: {
+    padding: 18,
+    alignItems: 'center',
+  },
+  txEmptyText: {
+    fontSize: 12.5,
     color: '#9e8cb8',
   },
-  txAmountBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  txList: {
+    gap: 8,
+  },
+  txCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+  },
+  txCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  txIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
   },
-  txAmountPositive: {
+  txIconBoxPlus: {
     backgroundColor: 'rgba(52, 211, 153, 0.15)',
     borderColor: 'rgba(52, 211, 153, 0.4)',
   },
-  txAmountNegative: {
+  txIconBoxMinus: {
     backgroundColor: 'rgba(251, 113, 133, 0.15)',
     borderColor: 'rgba(251, 113, 133, 0.4)',
   },
-  txAmountText: {
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
-    fontSize: 14,
-    fontWeight: '800',
+  txIcon: {
+    fontSize: 16,
   },
-  txAmountTextPositive: {
+  txName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#f5e6c8',
+  },
+  txDate: {
+    fontSize: 11,
+    color: '#7e6d99',
+    marginTop: 2,
+  },
+  txAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  txAmountPlus: {
     color: '#34d399',
   },
-  txAmountTextNegative: {
+  txAmountMinus: {
     color: '#fb7185',
   },
 });

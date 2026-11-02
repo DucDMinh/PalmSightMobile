@@ -6,7 +6,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { PALMSIGHT_MOBILE_THEME } from '../theme/tokens';
 import { TarotCard } from '../components/TarotCard';
 import accountService from '../services/accountService';
 import { showError, showSuccess } from '../helpers/toast';
+import { MysticButton } from '../components/MysticButton';
 
 interface ChangePasswordModalProps {
   visible: boolean;
@@ -78,10 +78,12 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       >
         <View style={styles.sheetContainer}>
           <TarotCard style={styles.card}>
+            <View style={styles.grabHandle} />
+
             <View style={styles.headerRow}>
               <View>
-                <Text style={styles.badgeTop}>✦ BẢO MẬT TÀI KHOẢN</Text>
-                <Text style={styles.title}>Đổi mật khẩu</Text>
+                <Text style={styles.badgeTop}>✦ BẢO MẬT TÀI KHOẢN ✦</Text>
+                <Text style={styles.title}>Đổi Mật Khẩu</Text>
               </View>
               <TouchableOpacity
                 onPress={onClose}
@@ -98,17 +100,17 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               value={currentPassword}
               onChangeText={setCurrentPassword}
               placeholder="••••••••"
-              placeholderTextColor="#9e8cb8"
+              placeholderTextColor="#7e6d99"
               secureTextEntry
             />
 
-            <Text style={styles.label}>Mật khẩu mới (ít nhất 8 ký tự)</Text>
+            <Text style={styles.label}>Mật khẩu mới (tối thiểu 8 ký tự)</Text>
             <TextInput
               style={styles.input}
               value={newPassword}
               onChangeText={setNewPassword}
               placeholder="••••••••"
-              placeholderTextColor="#9e8cb8"
+              placeholderTextColor="#7e6d99"
               secureTextEntry
             />
 
@@ -118,22 +120,19 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               placeholder="••••••••"
-              placeholderTextColor="#9e8cb8"
+              placeholderTextColor="#7e6d99"
               secureTextEntry
             />
 
-            <TouchableOpacity
-              style={styles.submitBtn}
+            <MysticButton
+              title="Cập Nhật Mật Khẩu"
+              variant="primary"
+              size="lg"
               onPress={handleSubmit}
-              disabled={submitting}
-              activeOpacity={0.85}
-            >
-              {submitting ? (
-                <ActivityIndicator size="small" color="#0b0716" />
-              ) : (
-                <Text style={styles.submitBtnText}>Cập nhật mật khẩu</Text>
-              )}
-            </TouchableOpacity>
+              loading={submitting}
+              fullWidth
+              style={styles.submitBtn}
+            />
           </TarotCard>
         </View>
       </KeyboardAvoidingView>
@@ -148,7 +147,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheetContainer: {
-    maxHeight: '90%',
+    maxHeight: '88%',
     width: '100%',
   },
   card: {
@@ -160,72 +159,66 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 40,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+  },
+  grabHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(212, 175, 55, 0.35)',
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   headerRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: 16,
   },
   badgeTop: {
     fontSize: 10,
     color: '#d4af37',
     letterSpacing: 2,
-    fontWeight: '800',
-    marginBottom: 4,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '800',
-    color: '#f7e7b4',
+    fontWeight: '700',
+    color: '#f5e6c8',
   },
   closeBtn: {
-    padding: 6,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
   },
   closeBtnText: {
     color: '#9e8cb8',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 14,
   },
   label: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '600',
-    color: '#f7e7b4',
+    color: '#f5e6c8',
     marginBottom: 6,
   },
   input: {
-    backgroundColor: 'rgba(11, 7, 22, 0.75)',
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.35)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#f7e7b4',
+    color: '#f5e6c8',
     fontSize: 14,
     marginBottom: 14,
   },
   submitBtn: {
-    backgroundColor: '#d4af37',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 243, 209, 0.65)',
-    borderRadius: 9999,
-    paddingVertical: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  submitBtnText: {
-    color: '#0b0716',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    marginTop: 6,
   },
 });
 

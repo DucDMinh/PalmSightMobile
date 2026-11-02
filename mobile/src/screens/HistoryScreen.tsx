@@ -16,11 +16,12 @@ import { formatDate } from '../helpers/common';
 import { useAuth } from '../providers/AuthenticationProvider';
 import {
   ReadingListItemDto,
-  ReadingDto,
   ReadingStatus,
   READING_SCHOOLS,
   HandOrientation,
 } from '@palmsight/shared';
+import { MysticButton } from '../components/MysticButton';
+import { MysticBadge } from '../components/MysticBadge';
 
 interface HistoryScreenProps {
   onGoScan: () => void;
@@ -67,29 +68,13 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
   const renderStatusBadge = (status: ReadingStatus) => {
     switch (status) {
       case ReadingStatus.DONE:
-        return (
-          <View style={[styles.statusBadge, styles.statusDone]}>
-            <Text style={styles.statusDoneText}>✦ Hoàn tất</Text>
-          </View>
-        );
+        return <MysticBadge label="Đã hoàn thành" icon="✓" variant="emerald" size="sm" />;
       case ReadingStatus.PROCESSING:
-        return (
-          <View style={[styles.statusBadge, styles.statusProcessing]}>
-            <Text style={styles.statusProcessingText}>⏳ Đang giải</Text>
-          </View>
-        );
+        return <MysticBadge label="Đang luận giải" icon="⏳" variant="gold" size="sm" />;
       case ReadingStatus.REJECTED:
-        return (
-          <View style={[styles.statusBadge, styles.statusRejected]}>
-            <Text style={styles.statusRejectedText}>⚠️ Bị từ chối</Text>
-          </View>
-        );
+        return <MysticBadge label="Hoàn 1 credit" icon="↩" variant="rose" size="sm" />;
       default:
-        return (
-          <View style={[styles.statusBadge, styles.statusFailed]}>
-            <Text style={styles.statusFailedText}>✕ Thất bại</Text>
-          </View>
-        );
+        return <MysticBadge label="Đã hoàn credit" icon="↩" variant="rose" size="sm" />;
     }
   };
 
@@ -97,14 +82,19 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     return (
       <View style={styles.centerContainer}>
         <TarotCard style={styles.promptCard}>
-          <Text style={styles.promptBadge}>✦ SỔ THIÊN MỆNH</Text>
+          <Text style={styles.promptBadge}>✦ SỔ THIÊN MỆNH ✦</Text>
           <Text style={styles.promptTitle}>Lịch sử quẻ bói</Text>
           <Text style={styles.promptDesc}>
-            Đăng nhập tài khoản để lưu trữ vĩnh viễn và xem lại các bản luận giải chỉ tay của bạn mọi lúc.
+            Đăng nhập để lưu trữ vĩnh viễn và xem lại các bản đồ chỉ tay cùng bài luận giải của bạn mọi lúc mọi nơi.
           </Text>
-          <TouchableOpacity style={styles.loginBtn} onPress={onGoLogin}>
-            <Text style={styles.loginBtnText}>[ ĐĂNG NHẬP HOẶC ĐĂNG KÝ ]</Text>
-          </TouchableOpacity>
+          <MysticButton
+            title="Đăng nhập hoặc Đăng ký"
+            icon="✨"
+            variant="primary"
+            size="md"
+            onPress={onGoLogin}
+            fullWidth
+          />
         </TarotCard>
       </View>
     );
@@ -136,15 +126,18 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
           <View style={styles.headerBox}>
             <View style={styles.headerRow}>
               <View>
-                <Text style={styles.badgeTop}>✦ SỔ THIÊN MỆNH · LƯU TRỮ</Text>
-                <Text style={styles.mainTitle}>Lịch sử xem bói</Text>
+                <Text style={styles.badgeTop}>✦ SỔ THIÊN MỆNH · LƯU TRỮ QUẺ BÓI</Text>
+                <Text style={styles.mainTitle}>Lịch Sử Xem Bói</Text>
               </View>
-              <TouchableOpacity style={styles.newReadingBtn} onPress={onGoScan}>
-                <Text style={styles.newReadingBtnText}>+ Bói mới</Text>
-              </TouchableOpacity>
+              <MysticButton
+                title="+ Khai quẻ mới"
+                variant="primary"
+                size="sm"
+                onPress={onGoScan}
+              />
             </View>
             <Text style={styles.countText}>
-              Đang lưu giữ {items.length} quẻ bói
+              ✦ Tổng số: {items.length} bài bói đã lưu
             </Text>
           </View>
         }
@@ -153,48 +146,71 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
             <Text style={styles.emptyIcon}>📜</Text>
             <Text style={styles.emptyTitle}>Chưa có quẻ bói nào</Text>
             <Text style={styles.emptyDesc}>
-              Bạn chưa thực hiện lần xem bói nào. Hãy khai quẻ đầu tiên ngay bây giờ!
+              Bạn chưa xem bói lần nào. Hãy chụp bàn tay để AI khai quẻ đầu tiên cho bạn!
             </Text>
-            <TouchableOpacity style={styles.startScanBtn} onPress={onGoScan}>
-              <Text style={styles.startScanBtnText}>[ BẮT ĐẦU XEM BÓI ]</Text>
-            </TouchableOpacity>
+            <MysticButton
+              title="Khai quẻ đầu tiên ngay"
+              icon="✨"
+              variant="primary"
+              size="md"
+              onPress={onGoScan}
+              style={{ marginTop: 14 }}
+            />
           </TarotCard>
         }
         renderItem={({ item }) => {
           const schoolCfg = READING_SCHOOLS[item.school];
-          const schoolName = schoolCfg?.name || item.school;
+          const rawName = schoolCfg?.name?.replace('Chỉ tay ', '') || item.school;
+          const schoolName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
           const handName =
             item.hand === HandOrientation.RIGHT ? 'Tay Phải' : 'Tay Trái';
 
+          const totalSections = schoolCfg?.sections?.length ?? 0;
+          const isAll =
+            !item.topics ||
+            item.topics.length === 0 ||
+            item.topics.length >= totalSections + 6;
+          const topicsBadge = isAll ? 'Toàn bộ mục' : `${item.topics.length} mục`;
+
           return (
             <TouchableOpacity
-              activeOpacity={0.8}
+              activeOpacity={0.84}
               onPress={() => onSelectReading(item.id)}
             >
-              <TarotCard style={styles.itemCard}>
+              <TarotCard style={styles.itemCard} interactive>
                 <View style={styles.itemHeader}>
-                  <View style={styles.schoolBadge}>
-                    <Text style={styles.schoolBadgeText}>✦ {schoolName}</Text>
+                  <View style={styles.itemHeaderLeft}>
+                    <MysticBadge
+                      label={`✦ ${schoolName}`}
+                      variant="gold"
+                      size="sm"
+                    />
+                    <Text style={styles.handBadgeText}>{handName} · {topicsBadge}</Text>
                   </View>
-                  <Text style={styles.handBadgeText}>{handName}</Text>
-                  <View style={styles.spacer} />
                   {renderStatusBadge(item.status)}
                 </View>
 
                 <View style={styles.itemBody}>
-                  {item.imageUrl && (
+                  {item.imageUrl ? (
                     <Image
                       source={{ uri: item.imageUrl }}
                       style={styles.thumbnail}
                       resizeMode="cover"
                     />
+                  ) : (
+                    <View style={styles.thumbnailPlaceholder}>
+                      <Text style={styles.thumbnailPlaceholderIcon}>✋</Text>
+                    </View>
                   )}
                   <View style={styles.summaryWrap}>
                     <Text style={styles.summaryText} numberOfLines={3}>
                       {item.summary ||
-                        'Nhấn vào để đọc trọn vẹn toàn bộ bản luận giải chi tiết...'}
+                        'Chạm vào để xem bản đồ các đường chỉ tay và bài luận giải chi tiết...'}
                     </Text>
-                    <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
+                    <View style={styles.itemFooterRow}>
+                      <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
+                      <Text style={styles.viewDetailText}>Xem chi tiết →</Text>
+                    </View>
                   </View>
                 </View>
               </TarotCard>
@@ -214,223 +230,163 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 16,
     paddingBottom: 40,
+    gap: 12,
   },
   centerContainer: {
     flex: 1,
     backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    padding: 20,
   },
   loadingText: {
     color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    marginTop: 12,
+    marginTop: 14,
     fontSize: 14,
   },
   promptCard: {
     alignItems: 'center',
-    padding: 28,
+    padding: 24,
+    width: '100%',
+    gap: 12,
   },
   promptBadge: {
-    fontSize: 10,
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontSize: 10.5,
+    color: '#d4af37',
     letterSpacing: 2,
     fontWeight: '700',
-    marginBottom: 6,
   },
   promptTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
     fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    marginBottom: 8,
+    color: '#f5e6c8',
   },
   promptDesc: {
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
-    fontSize: 13,
+    fontSize: 13.5,
+    color: '#9e8cb8',
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 20,
+    marginBottom: 8,
   },
-  loginBtn: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  loginBtnText: {
-    color: '#120a21',
-    fontWeight: '800',
-    fontSize: 13,
-    letterSpacing: 1,
-  },
+
   headerBox: {
-    marginBottom: 16,
+    marginBottom: 8,
   },
   headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   badgeTop: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
     fontSize: 10,
+    color: '#d4af37',
+    letterSpacing: 1.5,
     fontWeight: '700',
-    letterSpacing: 2,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   mainTitle: {
-    fontSize: 26,
+    fontSize: 22,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
     fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    color: '#f5e6c8',
   },
   countText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
     fontSize: 12,
+    color: '#9e8cb8',
     marginTop: 4,
   },
-  newReadingBtn: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
-  },
-  newReadingBtnText: {
-    color: '#120a21',
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
+
   emptyCard: {
     alignItems: 'center',
-    padding: 32,
+    padding: 28,
     marginTop: 20,
   },
   emptyIcon: {
     fontSize: 40,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   emptyTitle: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontWeight: '700',
+    color: '#f5e6c8',
     marginBottom: 6,
   },
   emptyDesc: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
     fontSize: 13,
+    color: '#9e8cb8',
     textAlign: 'center',
     lineHeight: 18,
-    marginBottom: 20,
   },
-  startScanBtn: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  startScanBtnText: {
-    color: '#120a21',
-    fontWeight: '800',
-    fontSize: 13,
-    letterSpacing: 1,
-  },
+
   itemCard: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
-    padding: 16,
-    marginBottom: 12,
+    padding: 14,
   },
   itemHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 10,
   },
-  schoolBadge: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.full,
-    borderWidth: 1,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
-    marginRight: 6,
-  },
-  schoolBadgeText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 11,
-    fontWeight: '700',
+  itemHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   handBadgeText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    fontSize: 11,
+    fontSize: 11.5,
+    color: '#d8cbe8',
+    fontWeight: '500',
   },
-  spacer: {
-    flex: 1,
-  },
-  statusBadge: {
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.full,
-  },
-  statusDone: {
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    borderColor: 'rgba(52, 211, 153, 0.4)',
-    borderWidth: 1,
-  },
-  statusDoneText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.success,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  statusProcessing: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    borderColor: 'rgba(245, 158, 11, 0.4)',
-    borderWidth: 1,
-  },
-  statusProcessingText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.warning,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  statusRejected: {
-    backgroundColor: 'rgba(251, 113, 133, 0.15)',
-    borderColor: 'rgba(251, 113, 133, 0.4)',
-    borderWidth: 1,
-  },
-  statusRejectedText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.danger,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  statusFailed: {
-    backgroundColor: 'rgba(251, 113, 133, 0.1)',
-  },
-  statusFailedText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.danger,
-    fontSize: 10,
-  },
+
   itemBody: {
     flexDirection: 'row',
     gap: 12,
   },
   thumbnail: {
-    width: 64,
-    height: 64,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+  },
+  thumbnailPlaceholder: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+    backgroundColor: 'rgba(27, 18, 51, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbnailPlaceholderIcon: {
+    fontSize: 28,
   },
   summaryWrap: {
     flex: 1,
     justifyContent: 'space-between',
   },
   summaryText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
-    fontSize: 13,
+    fontSize: 12.5,
+    color: '#f5e6c8',
     lineHeight: 18,
   },
+  itemFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
   dateText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
     fontSize: 11,
-    marginTop: 4,
+    color: '#7e6d99',
+  },
+  viewDetailText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#d4af37',
   },
 });
 

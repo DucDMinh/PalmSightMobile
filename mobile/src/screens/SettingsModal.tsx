@@ -6,13 +6,13 @@ import {
   Modal,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import axios from 'axios';
 import { TarotCard } from '../components/TarotCard';
 import { PALMSIGHT_MOBILE_THEME } from '../theme/tokens';
 import { getApiUrl, setApiUrl } from '../services/api';
+import { MysticButton } from '../components/MysticButton';
 
 interface SettingsModalProps {
   visible: boolean;
@@ -49,7 +49,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     } catch (err: any) {
       Alert.alert(
         'Không thể kết nối',
-        `Lỗi: ${err.message}\nHãy kiểm tra:\n1. Backend NestJS có đang chạy không (cổng 4000).\n2. Điện thoại và máy tính có chung mạng Wi-Fi không.`
+        `Lỗi: ${err.message}\nHãy kiểm tra:\n1. Backend NestJS có đang chạy không (cổng 4000).\n2. Thiết bị di động và máy tính có chung mạng Wi-Fi không.`
       );
     } finally {
       setTesting(false);
@@ -69,11 +69,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     >
       <View style={styles.backdrop}>
         <TarotCard style={styles.modalCard}>
-          <Text style={styles.badgeTop}>✦ THIẾT LẬP MÁY CHỦ API</Text>
+          <Text style={styles.badgeTop}>✦ THIẾT LẬP MÁY CHỦ API ✦</Text>
           <Text style={styles.modalTitle}>Cấu Hình Máy Chủ</Text>
           <Text style={styles.modalDesc}>
-            Nhập URL Backend NestJS. Khi test điện thoại thật qua Expo Go, hãy
-            dùng địa chỉ IP máy tính trong mạng Wi-Fi hoặc liên kết ngrok.
+            Nhập URL Backend NestJS. Khi kiểm thử trên điện thoại thật qua Expo Go, hãy dùng địa chỉ IP nội bộ máy tính hoặc liên kết ngrok.
           </Text>
 
           <TextInput
@@ -87,31 +86,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <TouchableOpacity
             style={styles.btnShortcut}
             onPress={handleSetDefaultIp}
+            activeOpacity={0.7}
           >
             <Text style={styles.btnShortcutText}>
-              💡 Gán IP máy hiện tại: 192.168.88.165:4000
+              💡 Gán IP máy tính: 192.168.88.165:4000
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.btnSecondary, testing && styles.btnDisabled]}
+          <MysticButton
+            title="Kiểm tra kết nối (Ping)"
+            icon="⚡"
+            variant="secondary"
+            size="md"
             onPress={handleTestPing}
-            disabled={testing}
-          >
-            {testing ? (
-              <ActivityIndicator color={PALMSIGHT_MOBILE_THEME.colors.goldLight} />
-            ) : (
-              <Text style={styles.btnSecondaryText}>⚡ Kiểm Tra Kết Nối (Ping)</Text>
-            )}
-          </TouchableOpacity>
+            loading={testing}
+            fullWidth
+            style={{ marginBottom: 10 }}
+          />
 
-          <TouchableOpacity style={styles.btnPrimary} onPress={handleSave}>
-            <Text style={styles.btnPrimaryText}>LƯU CẤU HÌNH</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.btnClose} onPress={onClose}>
-            <Text style={styles.btnCloseText}>Đóng</Text>
-          </TouchableOpacity>
+          <View style={styles.actionRow}>
+            <MysticButton
+              title="Đóng"
+              variant="ghost"
+              size="md"
+              onPress={onClose}
+              style={{ flex: 1 }}
+            />
+            <MysticButton
+              title="Lưu cấu hình"
+              variant="primary"
+              size="md"
+              onPress={handleSave}
+              style={{ flex: 1.5 }}
+            />
+          </View>
         </TarotCard>
       </View>
     </Modal>
@@ -121,7 +129,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(11, 7, 22, 0.85)',
+    backgroundColor: 'rgba(5, 3, 10, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -129,82 +137,60 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     padding: 22,
+    backgroundColor: '#1b1233',
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
   },
   badgeTop: {
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
     fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
+    color: '#d4af37',
+    letterSpacing: 2,
+    fontWeight: '700',
     marginBottom: 4,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '800',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
+    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
+    fontWeight: '700',
+    color: '#f5e6c8',
     marginBottom: 6,
   },
   modalDesc: {
-    fontSize: 12,
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
+    fontSize: 12.5,
+    color: '#9e8cb8',
     lineHeight: 18,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   input: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairlineStrong,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
     borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
+    paddingVertical: 10,
+    color: '#f5e6c8',
     fontSize: 13,
     marginBottom: 10,
   },
   btnShortcut: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.sm,
     marginBottom: 14,
     alignSelf: 'flex-start',
   },
   btnShortcutText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 11.5,
+    color: '#d4af37',
+    fontWeight: '500',
   },
-  btnSecondary: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairlineStrong,
-    paddingVertical: 12,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  btnSecondaryText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  btnPrimary: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    paddingVertical: 13,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  btnPrimaryText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.canvas,
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  btnClose: {
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  btnCloseText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  btnDisabled: {
-    opacity: 0.6,
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
   },
 });
+
+export default SettingsModal;

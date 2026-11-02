@@ -6,7 +6,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,6 +15,7 @@ import { TarotCard } from '../components/TarotCard';
 import SocialLoginButtons from '../components/SocialLoginButtons';
 import { useAuth } from '../providers/AuthenticationProvider';
 import { showError, showSuccess } from '../helpers/toast';
+import { MysticButton } from '../components/MysticButton';
 
 interface LoginModalProps {
   visible: boolean;
@@ -30,7 +30,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onGoRegister,
   onGoForgotPassword,
 }) => {
-  const { login, claimToken } = useAuth();
+  const { login } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -78,10 +78,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       >
         <View style={styles.sheetContainer}>
           <TarotCard style={styles.card}>
+            {/* Grab Handle */}
+            <View style={styles.grabHandle} />
+
             <View style={styles.headerRow}>
               <View>
-                <Text style={styles.badgeTop}>✦ CỔNG HUYỀN MÔN</Text>
-                <Text style={styles.title}>Đăng nhập</Text>
+                <Text style={styles.badgeTop}>✦ CỔNG HUYỀN MÔN ✦</Text>
+                <Text style={styles.title}>Đăng Nhập</Text>
               </View>
               <TouchableOpacity
                 onPress={onClose}
@@ -94,7 +97,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.subtitle}>
-                Dùng email hoặc tên người dùng của bạn.
+                Sử dụng email hoặc tên người dùng của bạn để tiếp tục.
               </Text>
 
               {/* Identifier Input */}
@@ -104,7 +107,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 value={identifier}
                 onChangeText={setIdentifier}
                 placeholder="email@example.com hoặc username"
-                placeholderTextColor="#9e8cb8"
+                placeholderTextColor="#7e6d99"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -121,29 +124,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
-                placeholderTextColor="#9e8cb8"
+                placeholderTextColor="#7e6d99"
                 secureTextEntry
               />
 
               {/* Submit Button */}
-              <TouchableOpacity
-                style={styles.submitBtn}
+              <MysticButton
+                title="Đăng Nhập"
+                variant="primary"
+                size="lg"
                 onPress={handleSubmit}
-                disabled={submitting}
-                activeOpacity={0.85}
-              >
-                {submitting ? (
-                  <ActivityIndicator size="small" color="#0b0716" />
-                ) : (
-                  <Text style={styles.submitBtnText}>Đăng nhập</Text>
-                )}
-              </TouchableOpacity>
+                loading={submitting}
+                fullWidth
+                style={styles.submitBtn}
+              />
 
               {/* Social Login with Google */}
-              <SocialLoginButtons
-                claimToken={claimToken}
-                onSuccess={() => onClose()}
-              />
+              <SocialLoginButtons onSuccess={() => onClose()} />
 
               {/* Switch to Register */}
               <View style={styles.footerRow}>
@@ -179,103 +176,95 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 40,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+  },
+  grabHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(212, 175, 55, 0.35)',
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   headerRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   badgeTop: {
     fontSize: 10,
     color: '#d4af37',
     letterSpacing: 2,
-    fontWeight: '800',
-    marginBottom: 4,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '800',
-    color: '#f7e7b4',
+    fontWeight: '700',
+    color: '#f5e6c8',
   },
   closeBtn: {
-    padding: 6,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
   },
   closeBtnText: {
     color: '#9e8cb8',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 14,
   },
   subtitle: {
     fontSize: 13,
-    color: '#d8cbe8',
-    marginBottom: 16,
+    color: '#9e8cb8',
+    marginBottom: 18,
   },
   label: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '600',
-    color: '#f7e7b4',
+    color: '#f5e6c8',
     marginBottom: 6,
+  },
+  input: {
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#f5e6c8',
+    fontSize: 14,
+    marginBottom: 14,
   },
   passwordHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
+    justifyContent: 'space-between',
   },
   forgotLink: {
     fontSize: 12,
     color: '#d4af37',
-    fontWeight: '600',
-  },
-  input: {
-    backgroundColor: 'rgba(11, 7, 22, 0.75)',
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.35)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    color: '#f7e7b4',
-    fontSize: 14,
-    marginBottom: 12,
+    fontWeight: '500',
   },
   submitBtn: {
-    backgroundColor: '#d4af37',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 243, 209, 0.65)',
-    borderRadius: 9999,
-    paddingVertical: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    marginBottom: 16,
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  submitBtnText: {
-    color: '#0b0716',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    marginTop: 6,
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 16,
   },
   footerText: {
-    color: '#9e8cb8',
     fontSize: 13,
+    color: '#9e8cb8',
   },
   registerLink: {
-    color: '#f7e7b4',
     fontSize: 13,
+    color: '#d4af37',
     fontWeight: '700',
     textDecorationLine: 'underline',
   },

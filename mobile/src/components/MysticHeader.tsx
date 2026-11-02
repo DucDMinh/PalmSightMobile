@@ -35,7 +35,8 @@ export const MysticHeader: React.FC<MysticHeaderProps> = ({
         style={styles.brand}
         onPress={onGoHome}
         activeOpacity={0.8}
-        accessibilityLabel="PALMSIGHT Home"
+        accessibilityRole="button"
+        accessibilityLabel="PALMSIGHT Trang chủ"
       >
         <View style={styles.logoBadge}>
           <Text style={styles.logoIcon}>✋</Text>
@@ -58,17 +59,19 @@ export const MysticHeader: React.FC<MysticHeaderProps> = ({
               style={styles.creditPill}
               onPress={onOpenWallet}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`Ví ${creditBalance ?? 0} credits`}
             >
-              <Text style={styles.sparkleIcon}>✨</Text>
-              <Text style={styles.creditPillText}>
-                [{creditBalance ?? 0} CREDITS]
-              </Text>
+              <Text style={styles.creditCoin}>🪙</Text>
+              <Text style={styles.creditPillText}>{creditBalance ?? 0}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.avatarBtn}
               onPress={onGoAccount || onOpenSettings}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Trang cá nhân"
             >
               {user?.avatarUrl ? (
                 <Image source={{ uri: user.avatarUrl }} style={styles.avatarImg} />
@@ -80,31 +83,33 @@ export const MysticHeader: React.FC<MysticHeaderProps> = ({
         ) : (
           <>
             <TouchableOpacity
-              style={styles.loginLink}
+              style={styles.loginBtn}
               onPress={onGoLogin}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <Text style={styles.loginLinkText}>Đăng nhập</Text>
+              <Text style={styles.loginBtnText}>Đăng nhập</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.trialPill}
+              style={styles.trialBadge}
               onPress={onOpenWallet}
               activeOpacity={0.8}
             >
-              <Text style={styles.trialPillText}>Bói thử</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.settingsBtn}
-              onPress={onOpenSettings}
-              activeOpacity={0.7}
-              accessibilityLabel="Cài đặt"
-            >
-              <Text style={styles.settingsBtnText}>⚙️</Text>
+              <Text style={styles.trialBadgeText}>✦ Bói thử</Text>
             </TouchableOpacity>
           </>
         )}
+
+        <TouchableOpacity
+          style={styles.settingsBtn}
+          onPress={onOpenSettings}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Cài đặt"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.settingsIcon}>⚙</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -112,16 +117,14 @@ export const MysticHeader: React.FC<MysticHeaderProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    minHeight: 64,
+    height: 56,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 10,
     backgroundColor: '#0b0716',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(212, 175, 55, 0.25)',
-    zIndex: 50,
+    borderBottomColor: 'rgba(212, 175, 55, 0.2)',
   },
   brand: {
     flexDirection: 'row',
@@ -129,59 +132,50 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   logoBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#1b1233',
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.6)',
-    justifyContent: 'center',
+    borderColor: 'rgba(212, 175, 55, 0.45)',
     alignItems: 'center',
+    justifyContent: 'center',
     position: 'relative',
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
   },
   logoIcon: {
-    fontSize: 18,
-    color: '#f5d77f',
+    fontSize: 16,
   },
   sparkleBadge: {
     position: 'absolute',
     top: -3,
     right: -3,
-    width: 14,
-    height: 14,
+    width: 13,
+    height: 13,
     borderRadius: 7,
     backgroundColor: '#d4af37',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   sparkleBadgeText: {
-    color: '#0b0716',
     fontSize: 8,
-    fontWeight: '900',
-    lineHeight: 10,
+    color: '#0b0716',
+    fontWeight: 'bold',
   },
   brandTextCol: {
     justifyContent: 'center',
   },
   brandTitle: {
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#f7e7b4',
-    letterSpacing: 2,
-    lineHeight: 20,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#f5e6c8',
+    letterSpacing: 1.2,
   },
   brandSubtitle: {
-    fontSize: 8.5,
+    fontSize: 8,
     fontWeight: '700',
-    color: '#9e8cb8',
+    color: '#d4af37',
     letterSpacing: 1.5,
-    marginTop: 2,
   },
   rightActions: {
     flexDirection: 'row',
@@ -191,89 +185,77 @@ const styles = StyleSheet.create({
   creditPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#241842',
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.5)',
-    paddingHorizontal: 11,
-    paddingVertical: 5.5,
-    borderRadius: 9999,
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.full,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    gap: 4,
   },
-  sparkleIcon: {
-    fontSize: 11,
+  creditCoin: {
+    fontSize: 12,
   },
   creditPillText: {
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontMono,
-    color: '#f7e7b4',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  avatarBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#d4af37',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 243, 209, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  avatarImg: {
-    width: '100%',
-    height: '100%',
-  },
-  avatarInitial: {
-    color: '#0b0716',
-    fontWeight: '900',
-    fontSize: 15,
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-  },
-  loginLink: {
-    paddingVertical: 6,
-    paddingHorizontal: 6,
-  },
-  loginLinkText: {
-    color: '#9e8cb8',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  trialPill: {
-    backgroundColor: '#241842',
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.5)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 9999,
-  },
-  trialPillText: {
     color: '#f7e7b4',
     fontSize: 12,
     fontWeight: '700',
   },
-  settingsBtn: {
+  avatarBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#140d26',
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
-    justifyContent: 'center',
+    borderColor: 'rgba(212, 175, 55, 0.5)',
     alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  settingsBtnText: {
+  avatarImg: {
+    width: 32,
+    height: 32,
+  },
+  avatarInitial: {
+    color: '#f5e6c8',
     fontSize: 13,
+    fontWeight: '700',
+  },
+  loginBtn: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.full,
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+  },
+  loginBtnText: {
+    color: '#f5e6c8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  trialBadge: {
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.full,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  trialBadgeText: {
+    color: '#d4af37',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  settingsBtn: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsIcon: {
+    fontSize: 16,
+    color: '#9e8cb8',
   },
 });
 

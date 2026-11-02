@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
+import { StyleSheet, View, ViewStyle, StyleProp } from 'react-native';
 import { PALMSIGHT_MOBILE_THEME } from '../theme/tokens';
 
 export const TarotCorners: React.FC = () => {
@@ -15,7 +15,7 @@ export const TarotCorners: React.FC = () => {
 
 interface TarotCardProps {
   children: React.ReactNode;
-  style?: ViewStyle | ViewStyle[];
+  style?: StyleProp<ViewStyle>;
   interactive?: boolean;
 }
 

@@ -18,6 +18,8 @@ import {
   READING_SCHOOLS,
   HandOrientation,
 } from '@palmsight/shared';
+import { MysticButton } from '../components/MysticButton';
+import { MysticBadge } from '../components/MysticBadge';
 
 interface GuestReadingPreviewScreenProps {
   claimToken: string;
@@ -79,13 +81,11 @@ export const GuestReadingPreviewScreen: React.FC<GuestReadingPreviewScreenProps>
   if (!preview) {
     return (
       <View style={styles.centerBox}>
-        <Text style={styles.errorTitle}>[!] KHÔNG TÌM THẤY BẢN XEM TRƯỚC</Text>
+        <Text style={styles.errorTitle}>KHÔNG TÌM THẤY BẢN XEM TRƯỚC</Text>
         <Text style={styles.errorDesc}>
           Bài bói thử đã hết hạn (lưu trữ 7 ngày) hoặc không tồn tại trên hệ thống.
         </Text>
-        <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <Text style={styles.backBtnText}>&larr; Bói quẻ mới</Text>
-        </TouchableOpacity>
+        <MysticButton title="← Khai quẻ mới" variant="primary" size="md" onPress={onBack} />
       </View>
     );
   }
@@ -96,35 +96,29 @@ export const GuestReadingPreviewScreen: React.FC<GuestReadingPreviewScreenProps>
 
   return (
     <View style={styles.screenWrapper}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Top bar back */}
-        <TouchableOpacity style={styles.backArrowBtn} onPress={onBack}>
-          <Text style={styles.backArrowText}>&larr; Quay lại</Text>
+        <TouchableOpacity style={styles.backArrowBtn} onPress={onBack} activeOpacity={0.7}>
+          <Text style={styles.backArrowText}>← Quay lại trang chủ</Text>
         </TouchableOpacity>
 
         {/* Countdown Banner */}
         <View style={styles.countdownBanner}>
-          <Text style={styles.countdownTitle}>⏳ BẢN XEM THỬ MIỄN PHÍ</Text>
+          <View style={styles.countdownHeaderRow}>
+            <Text style={styles.countdownTitle}>✦ BẢN XEM TRƯỚC 50% QUẺ BÓI ✦</Text>
+            <MysticBadge label="Lưu 7 ngày" variant="gold" size="sm" />
+          </View>
           <Text style={styles.countdownText}>
-            Hết hạn sau: <Text style={styles.countdownHighlight}>{countdownText}</Text>
+            Thời hạn nhận quẻ: <Text style={styles.countdownHighlight}>{countdownText || 'Đang đếm...'}</Text>
           </Text>
         </View>
 
         {/* Preview Card */}
         <TarotCard style={styles.card}>
           <View style={styles.metaRow}>
-            <View style={styles.badgeSchool}>
-              <Text style={styles.badgeSchoolText}>✦ {schoolName}</Text>
-            </View>
-            <View style={styles.badgeHand}>
-              <Text style={styles.badgeHandText}>{handName}</Text>
-            </View>
+            <MysticBadge label={`✦ ${schoolName}`} variant="gold" size="sm" />
+            <MysticBadge label={handName} variant="mute" size="sm" />
           </View>
-
-          <Text style={styles.readingTitle}>Bản Xem Thử Luận Giải Chỉ Tay</Text>
-          <Text style={styles.previewNote}>
-            Phiên bản xem thử mở khóa 50% nội dung cơ bản. Đăng ký để đọc toàn bộ luận giải chuyên sâu!
-          </Text>
 
           {preview.imageUrl && (
             <View style={styles.imageWrap}>
@@ -139,13 +133,13 @@ export const GuestReadingPreviewScreen: React.FC<GuestReadingPreviewScreenProps>
           {/* Unlocked Summary */}
           {preview.summary && (
             <View style={styles.sectionBox}>
-              <Text style={styles.sectionHeader}>🌟 Tổng Quan Vận Mệnh</Text>
+              <Text style={styles.sectionHeader}>✦ Tổng quan năng lượng bàn tay</Text>
               <Text style={styles.bodyText}>{preview.summary}</Text>
             </View>
           )}
 
           {/* Sections list with locks */}
-          <Text style={styles.groupHeader}>📜 Các Đường Chỉ Tay</Text>
+          <Text style={styles.groupHeader}>📜 Các đường chỉ tay chính</Text>
           {preview.sections?.map((sec, idx) => {
             const isLocked = sec.isLocked;
             return (
@@ -154,27 +148,27 @@ export const GuestReadingPreviewScreen: React.FC<GuestReadingPreviewScreenProps>
                 style={[styles.itemCard, isLocked && styles.itemCardLocked]}
               >
                 <View style={styles.itemHeaderRow}>
-                  <Text style={styles.itemTitle}>🔹 {sec.title || sec.key}</Text>
-                  {isLocked && <Text style={styles.lockBadge}>🔒 Bị khóa</Text>}
+                  <Text style={styles.itemTitle}>✦ {sec.title || sec.key}</Text>
+                  {isLocked && <MysticBadge label="Đang khóa" icon="🔒" variant="rose" size="sm" />}
                 </View>
 
                 {isLocked ? (
                   <View style={styles.lockedPlaceholder}>
                     <Text style={styles.lockedText}>
-                      Đăng ký tài khoản miễn phí để mở khóa quan sát đặc trưng & luận giải chi tiết cung này.
+                      Đăng ký tài khoản nhận +3 credits miễn phí để mở khóa toàn bộ quan sát đặc trưng & luận giải chi tiết cung này.
                     </Text>
                   </View>
                 ) : (
-                  <View>
+                  <View style={{ gap: 6, marginTop: 4 }}>
                     {sec.observation && (
-                      <View style={styles.subItemRow}>
-                        <Text style={styles.subItemLabel}>Quan sát:</Text>
+                      <View>
+                        <Text style={styles.subItemLabel}>Nhận diện thực tế:</Text>
                         <Text style={styles.bodyText}>{sec.observation}</Text>
                       </View>
                     )}
                     {sec.meaning && (
-                      <View style={styles.subItemRow}>
-                        <Text style={styles.subItemLabel}>Ý nghĩa:</Text>
+                      <View style={{ marginTop: 4 }}>
+                        <Text style={styles.subItemLabelGold}>Ý nghĩa luận giải:</Text>
                         <Text style={styles.bodyTextHighlight}>{sec.meaning}</Text>
                       </View>
                     )}
@@ -185,38 +179,44 @@ export const GuestReadingPreviewScreen: React.FC<GuestReadingPreviewScreenProps>
           })}
 
           {/* Aspects with locks */}
-          <Text style={styles.groupHeader}>✨ 6 Khía Cạnh Cuộc Sống</Text>
+          <Text style={styles.groupHeader}>✨ 6 Khía cạnh cuộc sống</Text>
           {preview.aspects &&
             Object.entries(preview.aspects).map(([key, val]: any) => (
               <View key={key} style={[styles.itemCard, styles.itemCardLocked]}>
                 <View style={styles.itemHeaderRow}>
                   <Text style={styles.itemTitle}>◆ {val?.title || key.toUpperCase()}</Text>
-                  <Text style={styles.lockBadge}>🔒 Bị khóa</Text>
+                  <MysticBadge label="Đang khóa" icon="🔒" variant="rose" size="sm" />
                 </View>
                 <Text style={styles.lockedText}>
-                  Luận giải vận hạn, tình duyên và sự nghiệp chi tiết đang chờ bạn mở khóa.
+                  Luận giải vận hạn, tình duyên, tài lộc và sự nghiệp chi tiết đang chờ bạn mở khóa.
                 </Text>
               </View>
             ))}
         </TarotCard>
+
+        {/* Space for bottom floating bar */}
+        <View style={{ height: 110 }} />
       </ScrollView>
 
-      {/* Sticky Unlock Bar */}
+      {/* Floating Bottom Unlock Bar */}
       <View style={styles.stickyUnlockContainer}>
         <View style={styles.stickyUnlockCard}>
-          <Text style={styles.stickyUnlockTitle}>
-            🔓 MỞ KHÓA 100% BÀI BÓI CHI TIẾT
-          </Text>
-          <Text style={styles.stickyUnlockDesc}>
-            Đăng ký tài khoản miễn phí để lưu quẻ vĩnh viễn và nhận thêm credits bói mới!
-          </Text>
-          <TouchableOpacity
-            style={styles.unlockBtn}
+          <View style={styles.stickyTextCol}>
+            <Text style={styles.stickyUnlockTitle}>
+              🎁 Đăng ký nhận +3 Credits
+            </Text>
+            <Text style={styles.stickyUnlockDesc}>
+              Mở khóa 100% bài bói & lưu vĩnh viễn
+            </Text>
+          </View>
+
+          <MysticButton
+            title="Mở Khóa Ngay"
+            icon="✨"
+            variant="primary"
+            size="md"
             onPress={() => onRegisterToUnlock(claimToken)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.unlockBtnText}>[ ĐĂNG KÝ MỞ KHÓA NGAY ]</Text>
-          </TouchableOpacity>
+          />
         </View>
       </View>
     </View>
@@ -230,258 +230,207 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 16,
-    paddingBottom: 160,
+    paddingBottom: 20,
+    gap: 12,
   },
   centerBox: {
     flex: 1,
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.canvas,
+    gap: 12,
   },
   loadingText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    marginTop: 12,
+    color: '#d8cbe8',
     fontSize: 14,
+    marginTop: 12,
   },
   errorTitle: {
-    color: PALMSIGHT_MOBILE_THEME.colors.danger,
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#fb7185',
+    textAlign: 'center',
   },
   errorDesc: {
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
     fontSize: 13,
+    color: '#9e8cb8',
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
+    lineHeight: 18,
+    marginBottom: 8,
   },
-  backBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-  },
-  backBtnText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontWeight: 'bold',
-  },
+
   backArrowBtn: {
     paddingVertical: 6,
-    marginBottom: 10,
   },
   backArrowText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13.5,
+    color: '#d4af37',
+    fontWeight: '600',
   },
+
   countdownBanner: {
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
-    borderColor: 'rgba(212, 175, 55, 0.4)',
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
     borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
     borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
     padding: 12,
-    marginBottom: 16,
+    gap: 4,
+  },
+  countdownHeaderRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   countdownTitle: {
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 1.5,
-    marginBottom: 4,
+    color: '#f7e7b4',
+    letterSpacing: 1,
   },
   countdownText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
-    fontSize: 13,
+    fontSize: 12,
+    color: '#d8cbe8',
   },
   countdownHighlight: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontWeight: 'bold',
+    color: '#34d399',
+    fontWeight: '700',
   },
+
   card: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceCard,
-    padding: 20,
+    padding: 16,
+    gap: 14,
   },
   metaRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    marginBottom: 10,
-  },
-  badgeSchool: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairlineStrong,
-    borderWidth: 1,
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.full,
-  },
-  badgeSchoolText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  badgeHand: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.full,
-  },
-  badgeHandText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
-    fontSize: 11,
-  },
-  readingTitle: {
-    fontSize: 22,
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '700',
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    marginBottom: 6,
-  },
-  previewNote: {
-    fontSize: 13,
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
-    lineHeight: 18,
-    marginBottom: 16,
   },
   imageWrap: {
     width: '100%',
-    height: 220,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    overflow: 'hidden',
-    marginBottom: 16,
+    alignItems: 'center',
   },
   palmImage: {
     width: '100%',
-    height: '100%',
-  },
-  sectionBox: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.hairline,
-    borderWidth: 1,
+    height: 240,
     borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    padding: 14,
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+  },
+
+  sectionBox: {
+    backgroundColor: 'rgba(20, 13, 38, 0.85)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#d4af37',
+    padding: 12,
+    borderRadius: 6,
+    gap: 4,
   },
   sectionHeader: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 15,
+    fontSize: 12.5,
     fontWeight: '700',
-    marginBottom: 8,
+    color: '#d4af37',
   },
-  groupHeader: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontSize: 16,
-    fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '700',
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  itemCard: {
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceDark,
-    borderColor: PALMSIGHT_MOBILE_THEME.colors.borderSubtle,
-    borderWidth: 1,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    padding: 14,
-    marginBottom: 10,
-  },
-  itemCardLocked: {
-    opacity: 0.85,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(212, 175, 55, 0.3)',
-  },
-  itemHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  itemTitle: {
-    color: PALMSIGHT_MOBILE_THEME.colors.gold,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  lockBadge: {
-    fontSize: 11,
-    color: PALMSIGHT_MOBILE_THEME.colors.warning,
-    fontWeight: '700',
-  },
-  lockedPlaceholder: {
-    paddingVertical: 6,
-  },
-  lockedText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    fontSize: 12,
+  bodyText: {
+    fontSize: 13,
+    color: '#d8cbe8',
     lineHeight: 18,
-    fontStyle: 'italic',
   },
-  subItemRow: {
-    marginTop: 4,
+  bodyTextHighlight: {
+    fontSize: 13,
+    color: '#f5e6c8',
+    lineHeight: 18,
   },
   subItemLabel: {
     fontSize: 11,
-    color: PALMSIGHT_MOBILE_THEME.colors.mute,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    fontWeight: '600',
+    color: '#9e8cb8',
   },
-  bodyText: {
-    color: PALMSIGHT_MOBILE_THEME.colors.ink,
+  subItemLabelGold: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#d4af37',
+  },
+
+  groupHeader: {
     fontSize: 14,
-    lineHeight: 22,
+    fontWeight: '700',
+    color: '#f7e7b4',
+    marginTop: 4,
   },
-  bodyTextHighlight: {
-    color: PALMSIGHT_MOBILE_THEME.colors.inkDeep,
+  itemCard: {
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.22)',
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    padding: 12,
+    gap: 6,
+  },
+  itemCardLocked: {
+    backgroundColor: 'rgba(27, 18, 51, 0.5)',
+    borderStyle: 'dashed',
+    borderColor: 'rgba(212, 175, 55, 0.25)',
+  },
+  itemHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  itemTitle: {
     fontSize: 14,
-    lineHeight: 22,
-    fontWeight: '500',
+    fontWeight: '700',
+    color: '#f5e6c8',
   },
+  lockedPlaceholder: {
+    paddingVertical: 4,
+  },
+  lockedText: {
+    fontSize: 12,
+    color: '#9e8cb8',
+    lineHeight: 17,
+    fontStyle: 'italic',
+  },
+
+  // STICKY BOTTOM BAR
   stickyUnlockContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 16,
-    paddingBottom: 24,
+    padding: 12,
     backgroundColor: 'rgba(11, 7, 22, 0.95)',
     borderTopWidth: 1,
-    borderTopColor: PALMSIGHT_MOBILE_THEME.colors.hairlineStrong,
+    borderTopColor: 'rgba(212, 175, 55, 0.3)',
   },
   stickyUnlockCard: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1f1438',
+    borderWidth: 1,
+    borderColor: '#d4af37',
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.lg,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    shadowColor: '#d4af37',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  stickyTextCol: {
+    flex: 1,
+    paddingRight: 10,
   },
   stickyUnlockTitle: {
-    color: PALMSIGHT_MOBILE_THEME.colors.goldLight,
-    fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 0.5,
-    marginBottom: 4,
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#f7e7b4',
   },
   stickyUnlockDesc: {
-    color: PALMSIGHT_MOBILE_THEME.colors.body,
     fontSize: 11,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  unlockBtn: {
-    width: '100%',
-    height: 46,
-    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: PALMSIGHT_MOBILE_THEME.colors.gold,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  unlockBtnText: {
-    color: '#120a21',
-    fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 1.5,
+    color: '#9e8cb8',
+    marginTop: 2,
   },
 });
 

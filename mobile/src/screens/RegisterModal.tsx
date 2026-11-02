@@ -6,7 +6,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,6 +16,7 @@ import SocialLoginButtons from '../components/SocialLoginButtons';
 import authService from '../services/authService';
 import { useAuth } from '../providers/AuthenticationProvider';
 import { showError, showSuccess } from '../helpers/toast';
+import { MysticButton } from '../components/MysticButton';
 
 interface RegisterModalProps {
   visible: boolean;
@@ -79,7 +79,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
       });
 
       showSuccess(
-        `Đã gửi email kích hoạt tới ${res.email}. Vui lòng kiểm tra hòm thư để xác thực!`,
+        `Đã gửi email kích hoạt tới ${res.email}. Vui lòng kiểm tra hộp thư để xác thực tài khoản!`,
         'Đăng ký thành công'
       );
       onClose();
@@ -108,10 +108,13 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
       >
         <View style={styles.sheetContainer}>
           <TarotCard style={styles.card}>
+            {/* Grab Handle */}
+            <View style={styles.grabHandle} />
+
             <View style={styles.headerRow}>
               <View>
-                <Text style={styles.badgeTop}>✦ KHỞI TẠO DUYÊN LÀNH</Text>
-                <Text style={styles.title}>Đăng ký tài khoản</Text>
+                <Text style={styles.badgeTop}>✦ GIA NHẬP PALMSIGHT ✦</Text>
+                <Text style={styles.title}>Tạo Tài Khoản</Text>
               </View>
               <TouchableOpacity
                 onPress={onClose}
@@ -122,19 +125,10 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
-              {claimToken && (
-                <View style={styles.claimBanner}>
-                  <Text style={styles.claimBannerSymbol}>✦</Text>
-                  <Text style={styles.claimBannerText}>
-                    Bạn đang có 1 bài bói thử. Tài khoản sẽ tự động mở khóa 100% quẻ
-                    sau khi hoàn tất đăng ký!
-                  </Text>
-                </View>
-              )}
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.subtitle}>
+                Tặng ngay <Text style={styles.goldText}>+3 credits miễn phí</Text> khi kích hoạt tài khoản thành công!
+              </Text>
 
               {/* Display Name */}
               <Text style={styles.label}>Tên hiển thị</Text>
@@ -142,8 +136,8 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                 style={styles.input}
                 value={displayName}
                 onChangeText={setDisplayName}
-                placeholder="Ví dụ: Hoàng Long"
-                placeholderTextColor="#9e8cb8"
+                placeholder="VD: Minh Trí"
+                placeholderTextColor="#7e6d99"
               />
 
               {/* Username */}
@@ -152,8 +146,8 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                 style={styles.input}
                 value={username}
                 onChangeText={setUsername}
-                placeholder="Ví dụ: hoanglong_99"
-                placeholderTextColor="#9e8cb8"
+                placeholder="VD: minhtri99"
+                placeholderTextColor="#7e6d99"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -164,21 +158,21 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                 style={styles.input}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="hoanglong@example.com"
-                placeholderTextColor="#9e8cb8"
+                placeholder="email@example.com"
+                placeholderTextColor="#7e6d99"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
 
               {/* Password */}
-              <Text style={styles.label}>Mật khẩu (ít nhất 8 ký tự)</Text>
+              <Text style={styles.label}>Mật khẩu (tối thiểu 8 ký tự)</Text>
               <TextInput
                 style={styles.input}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
-                placeholderTextColor="#9e8cb8"
+                placeholderTextColor="#7e6d99"
                 secureTextEntry
               />
 
@@ -189,61 +183,56 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 placeholder="••••••••"
-                placeholderTextColor="#9e8cb8"
+                placeholderTextColor="#7e6d99"
                 secureTextEntry
               />
 
-              {/* Referral Code */}
-              <Text style={styles.label}>Mã giới thiệu (không bắt buộc)</Text>
+              {/* Referral Code (Optional) */}
+              <Text style={styles.label}>Mã giới thiệu (nếu có, nhận thêm +1 credit)</Text>
               <TextInput
                 style={styles.input}
                 value={referralCode}
                 onChangeText={setReferralCode}
-                placeholder="8 ký tự (ví dụ: ABC12345)"
-                placeholderTextColor="#9e8cb8"
+                placeholder="Nhập mã 8 ký tự (VD: PALM1234)"
+                placeholderTextColor="#7e6d99"
                 autoCapitalize="characters"
+                maxLength={8}
               />
 
               {/* Terms Checkbox */}
               <TouchableOpacity
-                style={styles.checkboxRow}
+                style={styles.termsRow}
                 onPress={() => setTermsAccepted(!termsAccepted)}
                 activeOpacity={0.8}
               >
                 <View
                   style={[
-                    styles.checkbox,
-                    termsAccepted && styles.checkboxChecked,
+                    styles.checkboxBox,
+                    termsAccepted && styles.checkboxBoxChecked,
                   ]}
                 >
-                  {termsAccepted && <Text style={styles.checkboxTick}>✓</Text>}
+                  {termsAccepted && <Text style={styles.checkMark}>✓</Text>}
                 </View>
-                <Text style={styles.checkboxLabel}>
-                  Tôi đồng ý với Điều khoản dịch vụ & Chính sách riêng tư của PalmSight.
+                <Text style={styles.termsText}>
+                  Tôi đồng ý với Điều khoản dịch vụ và Chính sách bảo mật của PalmSight.
                 </Text>
               </TouchableOpacity>
 
-              {/* Submit Button */}
-              <TouchableOpacity
-                style={styles.submitBtn}
+              {/* Submit */}
+              <MysticButton
+                title="Đăng Ký & Nhận +3 Credits"
+                variant="primary"
+                size="lg"
                 onPress={handleSubmit}
-                disabled={submitting}
-                activeOpacity={0.85}
-              >
-                {submitting ? (
-                  <ActivityIndicator size="small" color="#0b0716" />
-                ) : (
-                  <Text style={styles.submitBtnText}>Đăng ký tài khoản</Text>
-                )}
-              </TouchableOpacity>
-
-              {/* Social Login with Google */}
-              <SocialLoginButtons
-                claimToken={claimToken}
-                onSuccess={() => onClose()}
+                loading={submitting}
+                fullWidth
+                style={styles.submitBtn}
               />
 
-              {/* Switch to Login */}
+              {/* Social Login */}
+              <SocialLoginButtons onSuccess={() => onClose()} />
+
+              {/* Footer Switch to Login */}
               <View style={styles.footerRow}>
                 <Text style={styles.footerText}>Đã có tài khoản? </Text>
                 <TouchableOpacity onPress={onGoLogin}>
@@ -277,142 +266,119 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 40,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderColor: 'rgba(212, 175, 55, 0.4)',
   },
-  scrollContent: {
-    paddingBottom: 20,
+  grabHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(212, 175, 55, 0.35)',
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   headerRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 4,
   },
   badgeTop: {
     fontSize: 10,
     color: '#d4af37',
     letterSpacing: 2,
-    fontWeight: '800',
-    marginBottom: 4,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '800',
-    color: '#f7e7b4',
+    fontWeight: '700',
+    color: '#f5e6c8',
   },
   closeBtn: {
-    padding: 6,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
   },
   closeBtnText: {
     color: '#9e8cb8',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  claimBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(44, 29, 79, 0.8)',
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.4)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-  claimBannerSymbol: {
-    color: '#d4af37',
     fontSize: 14,
   },
-  claimBannerText: {
-    flex: 1,
+  subtitle: {
+    fontSize: 13,
+    color: '#9e8cb8',
+    marginBottom: 16,
+  },
+  goldText: {
     color: '#f7e7b4',
-    fontSize: 12,
-    lineHeight: 18,
+    fontWeight: '700',
   },
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#f7e7b4',
-    marginBottom: 6,
+    color: '#f5e6c8',
+    marginBottom: 5,
   },
   input: {
-    backgroundColor: 'rgba(11, 7, 22, 0.75)',
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.35)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    paddingHorizontal: 14,
     paddingVertical: 11,
-    color: '#f7e7b4',
-    fontSize: 14,
+    color: '#f5e6c8',
+    fontSize: 13.5,
     marginBottom: 12,
   },
-  checkboxRow: {
+  termsRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
     marginVertical: 10,
   },
-  checkbox: {
-    width: 18,
-    height: 18,
+  checkboxBox: {
+    width: 20,
+    height: 20,
     borderRadius: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.6)',
-    backgroundColor: '#0b0716',
-    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
     alignItems: 'center',
-    marginTop: 2,
+    justifyContent: 'center',
   },
-  checkboxChecked: {
+  checkboxBoxChecked: {
     backgroundColor: '#d4af37',
+    borderColor: '#f7e7b4',
   },
-  checkboxTick: {
+  checkMark: {
     color: '#0b0716',
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: 'bold',
   },
-  checkboxLabel: {
-    flex: 1,
+  termsText: {
     fontSize: 12,
-    color: '#d8cbe8',
+    color: '#9e8cb8',
+    flex: 1,
     lineHeight: 17,
   },
   submitBtn: {
-    backgroundColor: '#d4af37',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 243, 209, 0.65)',
-    borderRadius: 9999,
-    paddingVertical: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 14,
-    marginBottom: 16,
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  submitBtnText: {
-    color: '#0b0716',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    marginTop: 6,
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 18,
+    marginTop: 16,
   },
   footerText: {
-    color: '#9e8cb8',
     fontSize: 13,
+    color: '#9e8cb8',
   },
   loginLink: {
-    color: '#f7e7b4',
     fontSize: 13,
+    color: '#d4af37',
     fontWeight: '700',
     textDecorationLine: 'underline',
   },

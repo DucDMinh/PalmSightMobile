@@ -6,7 +6,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { PALMSIGHT_MOBILE_THEME } from '../theme/tokens';
 import { TarotCard } from '../components/TarotCard';
 import authService from '../services/authService';
 import { showError } from '../helpers/toast';
+import { MysticButton } from '../components/MysticButton';
 
 interface ForgotPasswordModalProps {
   visible: boolean;
@@ -32,7 +32,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
 
   const handleSubmit = async () => {
     if (!email.trim() || !email.includes('@')) {
-      showError('Vui lòng nhập email hợp lệ.', 'Thông báo');
+      showError('Vui lòng nhập địa chỉ email hợp lệ.', 'Thông báo');
       return;
     }
 
@@ -64,10 +64,12 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
       >
         <View style={styles.sheetContainer}>
           <TarotCard style={styles.card}>
+            <View style={styles.grabHandle} />
+
             <View style={styles.headerRow}>
               <View>
-                <Text style={styles.badgeTop}>✦ KHÔI PHỤC TÀI KHOẢN</Text>
-                <Text style={styles.title}>Quên mật khẩu</Text>
+                <Text style={styles.badgeTop}>✦ KHÔI PHỤC TÀI KHOẢN ✦</Text>
+                <Text style={styles.title}>Quên Mật Khẩu</Text>
               </View>
               <TouchableOpacity
                 onPress={onClose}
@@ -80,55 +82,55 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
 
             {sentSuccess ? (
               <View style={styles.successBox}>
-                <Text style={styles.successTitle}>✓ Đã gửi hướng dẫn</Text>
+                <Text style={styles.successTitle}>✓ Đã gửi liên kết khôi phục</Text>
                 <Text style={styles.successDesc}>
                   Chúng tôi đã gửi liên kết đặt lại mật khẩu tới{' '}
                   <Text style={styles.boldText}>{email}</Text>. Vui lòng kiểm tra
                   hòm thư (kể cả thư mục Spam) và làm theo hướng dẫn.
                 </Text>
-                <TouchableOpacity
-                  style={styles.submitBtn}
+                <MysticButton
+                  title="Quay lại đăng nhập"
+                  variant="primary"
+                  size="md"
                   onPress={() => {
                     setSentSuccess(false);
                     onClose();
                     onGoLogin();
                   }}
-                >
-                  <Text style={styles.submitBtnText}>Quay lại đăng nhập</Text>
-                </TouchableOpacity>
+                  fullWidth
+                  style={{ marginTop: 12 }}
+                />
               </View>
             ) : (
               <View>
                 <Text style={styles.subtitle}>
-                  Nhập địa chỉ email đăng ký để nhận liên kết khôi phục mật khẩu.
+                  Nhập email đăng ký tài khoản của bạn để nhận liên kết khôi phục mật khẩu.
                 </Text>
 
-                <Text style={styles.label}>Email tài khoản</Text>
+                <Text style={styles.label}>Email của bạn</Text>
                 <TextInput
                   style={styles.input}
                   value={email}
                   onChangeText={setEmail}
                   placeholder="email@example.com"
-                  placeholderTextColor="#9e8cb8"
+                  placeholderTextColor="#7e6d99"
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  autoCorrect={false}
                 />
 
-                <TouchableOpacity
-                  style={styles.submitBtn}
+                <MysticButton
+                  title="Gửi Liên Kết Khôi Phục"
+                  variant="primary"
+                  size="lg"
                   onPress={handleSubmit}
-                  disabled={submitting}
-                  activeOpacity={0.85}
-                >
-                  {submitting ? (
-                    <ActivityIndicator size="small" color="#0b0716" />
-                  ) : (
-                    <Text style={styles.submitBtnText}>Gửi liên kết đặt lại</Text>
-                  )}
-                </TouchableOpacity>
+                  loading={submitting}
+                  fullWidth
+                  style={styles.submitBtn}
+                />
 
                 <View style={styles.footerRow}>
-                  <Text style={styles.footerText}>Nhớ lại mật khẩu? </Text>
+                  <Text style={styles.footerText}>Nhớ mật khẩu rồi? </Text>
                   <TouchableOpacity onPress={onGoLogin}>
                     <Text style={styles.loginLink}>Đăng nhập</Text>
                   </TouchableOpacity>
@@ -149,7 +151,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheetContainer: {
-    maxHeight: '90%',
+    maxHeight: '85%',
     width: '100%',
   },
   card: {
@@ -161,110 +163,109 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 40,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderColor: 'rgba(212, 175, 55, 0.4)',
+  },
+  grabHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(212, 175, 55, 0.35)',
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   headerRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: 8,
   },
   badgeTop: {
     fontSize: 10,
     color: '#d4af37',
     letterSpacing: 2,
-    fontWeight: '800',
-    marginBottom: 4,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontFamily: PALMSIGHT_MOBILE_THEME.typography.fontDisplay,
-    fontWeight: '800',
-    color: '#f7e7b4',
+    fontWeight: '700',
+    color: '#f5e6c8',
   },
   closeBtn: {
-    padding: 6,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
   },
   closeBtnText: {
     color: '#9e8cb8',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 14,
   },
   subtitle: {
     fontSize: 13,
-    color: '#d8cbe8',
-    marginBottom: 16,
+    color: '#9e8cb8',
+    marginBottom: 18,
+    lineHeight: 18,
   },
   label: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '600',
-    color: '#f7e7b4',
+    color: '#f5e6c8',
     marginBottom: 6,
   },
   input: {
-    backgroundColor: 'rgba(11, 7, 22, 0.75)',
+    backgroundColor: PALMSIGHT_MOBILE_THEME.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.35)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#f7e7b4',
+    color: '#f5e6c8',
     fontSize: 14,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   submitBtn: {
-    backgroundColor: '#d4af37',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 243, 209, 0.65)',
-    borderRadius: 9999,
-    paddingVertical: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  submitBtnText: {
-    color: '#0b0716',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    marginTop: 4,
   },
   successBox: {
-    paddingVertical: 12,
+    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+    borderWidth: 1,
+    borderColor: '#34d399',
+    borderRadius: PALMSIGHT_MOBILE_THEME.radius.md,
+    padding: 16,
+    marginVertical: 12,
   },
   successTitle: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#34d399',
-    fontSize: 18,
-    fontWeight: 'bold',
     marginBottom: 8,
   },
   successDesc: {
-    color: '#d8cbe8',
-    fontSize: 14,
-    lineHeight: 22,
-    marginBottom: 20,
+    fontSize: 13,
+    color: '#f5e6c8',
+    lineHeight: 19,
   },
   boldText: {
-    fontWeight: 'bold',
-    color: '#f7e7b4',
+    fontWeight: '700',
+    color: '#fff3d1',
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 18,
   },
   footerText: {
-    color: '#9e8cb8',
     fontSize: 13,
+    color: '#9e8cb8',
   },
   loginLink: {
-    color: '#f7e7b4',
     fontSize: 13,
+    color: '#d4af37',
     fontWeight: '700',
     textDecorationLine: 'underline',
   },
