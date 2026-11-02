@@ -14,6 +14,7 @@ import { CreditsModule } from "../credits/credits.module";
 import { AiModule } from "../ai/ai.module";
 import { ImageProcessorService } from "./image-processor.service";
 import { CloudinaryService } from "./cloudinary.service";
+import { PalmLineOnnxService } from "./palm-line-onnx.service";
 import { ReadingsService } from "./readings.service";
 import { ReadingsController } from "./readings.controller";
 import { ReadingsGuestController } from "./readings.guest.controller";
@@ -44,10 +45,11 @@ const guestUploadMiddleware = multer({
     ImageProcessorService,
     CloudinaryService,
     ReadingsService,
+    PalmLineOnnxService,
     GuestTrialGuard,
     GuestTrialRateLimitGuard,
   ],
-  exports: [ReadingsService, ImageProcessorService, CloudinaryService],
+  exports: [ReadingsService, ImageProcessorService, CloudinaryService, PalmLineOnnxService],
 })
 export class ReadingsModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

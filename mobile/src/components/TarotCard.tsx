@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle, StyleProp } from 'react-native';
+import { StyleSheet, View, ViewStyle, StyleProp, LayoutChangeEvent } from 'react-native';
 import { PALMSIGHT_MOBILE_THEME } from '../theme/tokens';
 
 export const TarotCorners: React.FC = () => {
@@ -17,15 +17,17 @@ interface TarotCardProps {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   interactive?: boolean;
+  onLayout?: (e: LayoutChangeEvent) => void;
 }
 
 export const TarotCard: React.FC<TarotCardProps> = ({
   children,
   style,
   interactive = false,
+  onLayout,
 }) => {
   return (
-    <View style={[styles.card, interactive && styles.cardInteractive, style]}>
+    <View style={[styles.card, interactive && styles.cardInteractive, style]} onLayout={onLayout}>
       <TarotCorners />
       {children}
     </View>

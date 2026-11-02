@@ -8,7 +8,7 @@ interface MysticHeaderProps {
   creditBalance?: number | null;
   isLogged: boolean;
   onOpenWallet: () => void;
-  onOpenSettings: () => void;
+  onOpenSettings?: () => void;
   onGoHome: () => void;
   onGoAccount?: () => void;
   onGoLogin?: () => void;
@@ -68,7 +68,7 @@ export const MysticHeader: React.FC<MysticHeaderProps> = ({
 
             <TouchableOpacity
               style={styles.avatarBtn}
-              onPress={onGoAccount || onOpenSettings}
+              onPress={onGoAccount || (__DEV__ ? onOpenSettings : undefined)}
               activeOpacity={0.8}
               accessibilityRole="button"
               accessibilityLabel="Trang cá nhân"
@@ -100,16 +100,18 @@ export const MysticHeader: React.FC<MysticHeaderProps> = ({
           </>
         )}
 
-        <TouchableOpacity
-          style={styles.settingsBtn}
-          onPress={onOpenSettings}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Cài đặt"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.settingsIcon}>⚙</Text>
-        </TouchableOpacity>
+        {__DEV__ && onOpenSettings && (
+          <TouchableOpacity
+            style={styles.settingsBtn}
+            onPress={onOpenSettings}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Cài đặt máy chủ"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.settingsIcon}>⚙</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

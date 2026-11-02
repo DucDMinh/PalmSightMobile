@@ -203,7 +203,7 @@ export const ReadingHeader: React.FC<ReadingHeaderProps> = ({
   };
 
   return (
-    <div className="w-full lg:w-[310px] shrink-0 lg:sticky lg:top-24 self-start">
+    <div className="w-full lg:w-[310px] shrink-0 sticky top-0 lg:top-24 self-start z-30 bg-[#0b0716]/95 backdrop-blur-md pb-2">
       <div className="mb-5">
         <Link
           to={BaseUrl.Readings}
