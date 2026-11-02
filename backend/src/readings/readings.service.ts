@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   Optional,
   HttpException,
   HttpStatus,
@@ -44,6 +45,7 @@ import {
 
 @Injectable()
 export class ReadingsService {
+  private readonly logger = new Logger(ReadingsService.name);
   private readonly cloudinary: CloudinaryService;
   private readonly palmLineOnnxService: PalmLineOnnxService;
 
