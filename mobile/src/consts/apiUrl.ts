@@ -2,7 +2,14 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 export const SERVER_URL_STORAGE_KEY = 'palmsight_server_url';
-export const PROD_API_BASE_URL = 'https://palmsightmobile-1.onrender.com/api/v1';
+
+export const DEFAULT_API_BASE_URL = Platform.select({
+  android: 'http://10.0.2.2:4000/api/v1',
+  ios: 'http://localhost:4000/api/v1',
+  default: 'http://localhost:4000/api/v1',
+});
+
+let currentBaseUrl = DEFAULT_API_BASE_URL;
 
 export function normalizeApiUrl(url: string): string {
   let normalized = url.trim().replace(/\/+$/, '');
@@ -14,13 +21,6 @@ export function normalizeApiUrl(url: string): string {
   }
   return normalized;
 }
-
-const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL;
-export const DEFAULT_API_BASE_URL = ENV_API_URL
-  ? normalizeApiUrl(ENV_API_URL)
-  : PROD_API_BASE_URL;
-
-let currentBaseUrl = DEFAULT_API_BASE_URL;
 
 export function getApiBaseUrl(): string {
   return currentBaseUrl;
@@ -35,11 +35,6 @@ export async function setApiBaseUrl(url: string): Promise<string> {
 }
 
 export async function initApiBaseUrl(): Promise<string> {
-  // In release mode, strictly lock to production Render backend
-  if (!__DEV__) {
-    currentBaseUrl = DEFAULT_API_BASE_URL;
-    return currentBaseUrl;
-  }
   try {
     const saved = await SecureStore.getItemAsync(SERVER_URL_STORAGE_KEY);
     if (saved) {

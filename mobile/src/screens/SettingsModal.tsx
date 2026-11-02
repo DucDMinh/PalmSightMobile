@@ -23,10 +23,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   visible,
   onClose,
 }) => {
-  if (!__DEV__) {
-    return null;
-  }
-
   const [urlInput, setUrlInput] = useState(getApiUrl());
   const [testing, setTesting] = useState(false);
 
@@ -53,15 +49,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     } catch (err: any) {
       Alert.alert(
         'Không thể kết nối',
-        `Lỗi: ${err.message}\nHãy kiểm tra:\n1. Backend NestJS có đang chạy không.\n2. Thiết bị di động có kết nối internet không.`
+        `Lỗi: ${err.message}\nHãy kiểm tra:\n1. Backend NestJS có đang chạy không (cổng 4000).\n2. Thiết bị di động và máy tính có chung mạng Wi-Fi không.`
       );
     } finally {
       setTesting(false);
     }
-  };
-
-  const handleSetRender = () => {
-    setUrlInput('https://palmsightmobile-1.onrender.com/api/v1');
   };
 
   const handleSetDefaultIp = () => {
@@ -80,7 +72,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <Text style={styles.badgeTop}>✦ THIẾT LẬP MÁY CHỦ API ✦</Text>
           <Text style={styles.modalTitle}>Cấu Hình Máy Chủ</Text>
           <Text style={styles.modalDesc}>
-            Nhập URL Backend NestJS. Mặc định là Render Production hoặc địa chỉ IP máy tính khi chạy cục bộ qua Expo Go.
+            Nhập URL Backend NestJS. Khi kiểm thử trên điện thoại thật qua Expo Go, hãy dùng địa chỉ IP nội bộ máy tính hoặc liên kết ngrok.
           </Text>
 
           <TextInput
@@ -91,27 +83,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             autoCorrect={false}
           />
 
-          <View style={{ gap: 8, marginBottom: 12 }}>
-            <TouchableOpacity
-              style={styles.btnShortcut}
-              onPress={handleSetRender}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.btnShortcutText}>
-                ☁️ Gán Render: palmsightmobile-1.onrender.com
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.btnShortcut}
-              onPress={handleSetDefaultIp}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.btnShortcutText}>
-                💡 Gán IP máy tính: 192.168.88.165:4000
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.btnShortcut}
+            onPress={handleSetDefaultIp}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.btnShortcutText}>
+              💡 Gán IP máy tính: 192.168.88.165:4000
+            </Text>
+          </TouchableOpacity>
 
           <MysticButton
             title="Kiểm tra kết nối (Ping)"

@@ -11,7 +11,7 @@ import {
   Dimensions,
   LayoutChangeEvent,
 } from 'react-native';
-import Svg, { Polyline } from 'react-native-svg';
+import Svg, { Polyline, Circle } from 'react-native-svg';
 import { PALMSIGHT_MOBILE_THEME } from '../theme/tokens';
 import { TarotCard } from '../components/TarotCard';
 import readingsService from '../services/readingsService';
@@ -107,22 +107,22 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
   const [showAnnotated, setShowAnnotated] = useState(true);
   const [activeLine, setActiveLine] = useState<MajorPalmLineKey | null>(null);
   const [highlightedSectionKey, setHighlightedSectionKey] = useState<string | null>(null);
-  const [imageLayout, setImageLayout] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
-  const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
+  const [imageLayout, setImageLayout] = useState<{ width: number; height: number }>({ width: 220, height: 220 });
 
   const handleImageTouch = (evt: any) => {
-    if (!imageLayout.width || !imageLayout.height) return;
+    const width = imageLayout.width || 220;
+    const height = imageLayout.height || 220;
     const { locationX, locationY } = evt.nativeEvent;
-    const normX = locationX / imageLayout.width;
-    const normY = locationY / imageLayout.height;
+    const normX = locationX / width;
+    const normY = locationY / height;
 
     // CHỈ so khớp với 3 đường chính: heart, head, life!
-    const validLines = effectiveLines.filter(
+    const validLines = (reading?.palmLines || []).filter(
       (l) => l.name === 'heart' || l.name === 'head' || l.name === 'life'
     );
 
     let closestLine: MajorPalmLineKey | null = null;
-    let minDistance = 0.22;
+    let minDistance = 0.18;
 
     for (const line of validLines) {
       if (!Array.isArray(line.points)) continue;
@@ -182,27 +182,39 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
     return resolveEffectivePalmLines(reading.palmLines, reading.hand);
   }, [reading?.palmLines, reading?.hand]);
 
-  const selectedLineData = useMemo(() => {
-    if (!activeLine || effectiveLines.length === 0) return null;
-    return effectiveLines.find((l) => l.name === activeLine);
-  }, [activeLine, effectiveLines]);
+  const activeLineSegments = useMemo(() => {
+    if (!activeLine || !reading?.palmLines) return [];
+    const matching = reading.palmLines.filter(
+      (l) => l.name === activeLine && Array.isArray(l.points) && l.points.length >= 2
+    );
 
-  const selectedPointsStr = useMemo(() => {
-    if (
-      !selectedLineData ||
-      !Array.isArray(selectedLineData.points) ||
-      selectedLineData.points.length < 2
-    ) {
-      return '';
-    }
-    return selectedLineData.points
-      .map(([x, y]) => {
-        const px = x > 1 ? (x / 512) * 100 : x * 100;
-        const py = y > 1 ? (y / 512) * 100 : y * 100;
-        return `${px.toFixed(2)},${py.toFixed(2)}`;
-      })
-      .join(' ');
-  }, [selectedLineData]);
+    return matching.map((l) => {
+      const pointsStr = l.points
+        .map(([x, y]) => {
+          const px = x > 1 ? (x / 512) * 100 : x * 100;
+          const py = y > 1 ? (y / 512) * 100 : y * 100;
+          return `${px.toFixed(2)},${py.toFixed(2)}`;
+        })
+        .join(' ');
+
+      const firstPt = l.points[0];
+      const lastPt = l.points[l.points.length - 1];
+      const startX = firstPt[0] > 1 ? (firstPt[0] / 512) * 100 : firstPt[0] * 100;
+      const startY = firstPt[1] > 1 ? (firstPt[1] / 512) * 100 : firstPt[1] * 100;
+      const endX = lastPt[0] > 1 ? (lastPt[0] / 512) * 100 : lastPt[0] * 100;
+      const endY = lastPt[1] > 1 ? (lastPt[1] / 512) * 100 : lastPt[1] * 100;
+
+      return {
+        pointsStr,
+        startX: Number(startX.toFixed(2)),
+        startY: Number(startY.toFixed(2)),
+        endX: Number(endX.toFixed(2)),
+        endY: Number(endY.toFixed(2)),
+      };
+    });
+  }, [activeLine, reading?.palmLines]);
+
+  const activeLineColor = activeLine ? PALM_LINE_COLORS[activeLine] || '#ff2d55' : '#ff2d55';
 
   const handleDelete = () => {
     if (!reading) return;
@@ -244,25 +256,24 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
 
     if (match) {
       const cardY = cardLocalOffsetsRef.current[match.key];
-      if (typeof cardY === 'number') {
-        const absoluteTargetY = Math.max(
-          0,
-          (detailCardOffsetRef.current || 0) +
-            (blockGroupOffsetRef.current || 0) +
-            cardY -
-            10
-        );
-        scrollViewRef.current?.scrollTo({
-          y: absoluteTargetY,
-          animated: true,
-        });
+      const targetLocalY = typeof cardY === 'number' ? cardY : match.index * 130;
+      const absoluteTargetY = Math.max(
+        0,
+        (detailCardOffsetRef.current || 0) +
+          (blockGroupOffsetRef.current || 0) +
+          targetLocalY -
+          10
+      );
+      scrollViewRef.current?.scrollTo({
+        y: absoluteTargetY,
+        animated: true,
+      });
 
-        setHighlightedSectionKey(match.key);
-        if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
-        highlightTimerRef.current = setTimeout(() => {
-          setHighlightedSectionKey(null);
-        }, 3200);
-      }
+      setHighlightedSectionKey(match.key);
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = setTimeout(() => {
+        setHighlightedSectionKey(null);
+      }, 3200);
     }
   };
 
@@ -300,24 +311,7 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
     return found ? found.label : key;
   };
 
-  const currentDisplayImage =
-    showAnnotated && reading.annotatedImageUrl
-      ? reading.annotatedImageUrl
-      : reading.imageUrl || reading.annotatedImageUrl;
-
-  useEffect(() => {
-    if (currentDisplayImage) {
-      Image.getSize(
-        currentDisplayImage,
-        (w, h) => {
-          if (w > 0 && h > 0) {
-            setImageAspectRatio(w / h);
-          }
-        },
-        () => {}
-      );
-    }
-  }, [currentDisplayImage]);
+  const currentDisplayImage = (showAnnotated && reading.annotatedImageUrl) ? reading.annotatedImageUrl : reading.imageUrl;
 
   const activeLineInfo = activeLine
     ? getPalmLineDisplayInfo(activeLine, reading.school)
@@ -356,10 +350,7 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
             <View style={styles.palmViewerSection}>
               {/* Khung ảnh lòng bàn tay kèm lớp vẽ SVG đè lên trên */}
               <View
-                style={[
-                  styles.palmImageWrapper,
-                  imageAspectRatio ? { aspectRatio: imageAspectRatio } : null,
-                ]}
+                style={styles.palmImageWrapper}
                 onLayout={(e) => {
                   const { width, height } = e.nativeEvent.layout;
                   setImageLayout({ width, height });
@@ -370,92 +361,92 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
                 <Image
                   source={{ uri: currentDisplayImage }}
                   style={styles.palmImage}
-                  resizeMode="cover"
+                  resizeMode="contain"
                 />
 
-                {/* 1. LỚP VẼ 3 ĐƯỜNG CHỈ TAY CHÍNH: TÂM ĐẠO, TRÍ ĐẠO, SINH ĐẠO */}
-                {showAnnotated && effectiveLines.length > 0 && (
+                {/* HIỆU ỨNG ĐƯỜNG CHỈ TAY PHÁT SÁNG KHI ĐƯỢC BẤM VÀO */}
+                {activeLineSegments.length > 0 ? (
                   <Svg
                     viewBox="0 0 100 100"
-                    preserveAspectRatio="none"
                     style={StyleSheet.absoluteFill}
                     pointerEvents="none"
                   >
-                    {effectiveLines.map((line) => {
-                      const key = line.name as MajorPalmLineKey;
-                      if (key !== 'heart' && key !== 'head' && key !== 'life') return null;
-                      if (!Array.isArray(line.points) || line.points.length < 2) return null;
-                      const pts = line.points
-                        .map(([x, y]) => {
-                          const px = x > 1 ? (x / 512) * 100 : x * 100;
-                          const py = y > 1 ? (y / 512) * 100 : y * 100;
-                          return `${px.toFixed(2)},${py.toFixed(2)}`;
-                        })
-                        .join(' ');
-                      const strokeColor = PALM_LINE_COLORS[key] || '#ff2d55';
-                      const isSelected = activeLine === key;
-                      return (
+                    {activeLineSegments.map((seg, idx) => (
+                      <React.Fragment key={idx}>
+                        {/* 1. Lớp hào quang rộng bên ngoài (vầng sáng lan tỏa) */}
                         <Polyline
-                          key={key}
-                          points={pts}
+                          points={seg.pointsStr}
                           fill="none"
-                          stroke={strokeColor}
-                          strokeWidth={isSelected ? '4.5' : '3.5'}
-                          strokeOpacity={isSelected ? 1 : 0.75}
+                          stroke={activeLineColor}
+                          strokeWidth="11"
+                          strokeOpacity={0.4}
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
-                      );
-                    })}
-                  </Svg>
-                )}
-
-                {/* 2. HIỆU ỨNG PHÁT SÁNG NỔI BẬT KHI ĐƯỜNG CHỈ TAY ĐƯỢC CHỌN (VẼ ĐÈ LÊN TRÊN) */}
-                {showAnnotated && selectedLineData && selectedPointsStr ? (
-                  <Svg
-                    viewBox="0 0 100 100"
-                    preserveAspectRatio="none"
-                    style={StyleSheet.absoluteFill}
-                    pointerEvents="none"
-                  >
-                    {/* Vầng hào quang sáng rộng bên ngoài */}
-                    <Polyline
-                      points={selectedPointsStr}
-                      fill="none"
-                      stroke={
-                        PALM_LINE_COLORS[selectedLineData.name as MajorPalmLineKey] ||
-                        '#ff2d55'
-                      }
-                      strokeWidth="15"
-                      strokeOpacity="0.45"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    {/* Vầng sáng trung gian sắc nét */}
-                    <Polyline
-                      points={selectedPointsStr}
-                      fill="none"
-                      stroke={
-                        PALM_LINE_COLORS[selectedLineData.name as MajorPalmLineKey] ||
-                        '#ff2d55'
-                      }
-                      strokeWidth="8"
-                      strokeOpacity="0.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    {/* Lõi sáng trắng rực rỡ */}
-                    <Polyline
-                      points={selectedPointsStr}
-                      fill="none"
-                      stroke="#ffffff"
-                      strokeWidth="3.5"
-                      strokeOpacity="0.95"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                        {/* 2. Lớp phát quang neon rực rỡ */}
+                        <Polyline
+                          points={seg.pointsStr}
+                          fill="none"
+                          stroke={activeLineColor}
+                          strokeWidth="6.5"
+                          strokeOpacity={0.8}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        {/* 3. Lõi tia sáng trắng rực rỡ (white-hot laser core) */}
+                        <Polyline
+                          points={seg.pointsStr}
+                          fill="none"
+                          stroke="#ffffff"
+                          strokeWidth="3.2"
+                          strokeOpacity={0.95}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        {/* 4. Sợi năng lượng màu sắc nét */}
+                        <Polyline
+                          points={seg.pointsStr}
+                          fill="none"
+                          stroke={activeLineColor}
+                          strokeWidth="1.8"
+                          strokeOpacity={1}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        {/* Điểm nút phát sáng ở đầu đường */}
+                        <Circle
+                          cx={seg.startX}
+                          cy={seg.startY}
+                          r="3.5"
+                          fill={activeLineColor}
+                          opacity={0.65}
+                        />
+                        <Circle
+                          cx={seg.startX}
+                          cy={seg.startY}
+                          r="1.8"
+                          fill="#ffffff"
+                        />
+                        {/* Điểm nút phát sáng ở cuối đường */}
+                        <Circle
+                          cx={seg.endX}
+                          cy={seg.endY}
+                          r="3.5"
+                          fill={activeLineColor}
+                          opacity={0.65}
+                        />
+                        <Circle
+                          cx={seg.endX}
+                          cy={seg.endY}
+                          r="1.8"
+                          fill="#ffffff"
+                        />
+                      </React.Fragment>
+                    ))}
                   </Svg>
                 ) : null}
+
+                
 
                 {/* Huy hiệu hướng dẫn chạm trên ảnh */}
                 <View style={styles.imageOverlayHint}>
@@ -465,7 +456,7 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
                 </View>
 
                 {/* Toggle AI Vẽ vs Ảnh gốc */}
-                {(reading.annotatedImageUrl || effectiveLines.length > 0) && reading.imageUrl && (
+                {reading.annotatedImageUrl && reading.imageUrl && (
                   <View style={styles.imageCornerToggle}>
                     <TouchableOpacity
                       style={[styles.cornerToggleBtn, showAnnotated && styles.cornerToggleBtnActive]}
@@ -808,9 +799,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   palmImageWrapper: {
-    width: '100%',
-    aspectRatio: 0.75,
-    maxHeight: 220,
+    width: 220,
+    height: 220,
     alignSelf: 'center',
     borderRadius: 8,
     overflow: 'hidden',
@@ -820,8 +810,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(212, 175, 55, 0.45)',
   },
   palmImage: {
-    width: '100%',
-    height: '100%',
+    width: 220,
+    height: 220,
   },
   imageOverlayHint: {
     position: 'absolute',

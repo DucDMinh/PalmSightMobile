@@ -90,94 +90,27 @@ export function getPalmLineDisplayInfo(
 
 export function resolveEffectivePalmLines(
   palmLines?: PalmLineDto[] | null,
-  hand: HandOrientation = HandOrientation.RIGHT
+  _hand: HandOrientation = HandOrientation.RIGHT
 ): PalmLineDto[] {
-  // 1. Nếu có palmLines thực tế được truyền vào từ server/ONNX và có điểm hợp lệ
-  if (Array.isArray(palmLines) && palmLines.length > 0) {
-    const valid = palmLines.filter(
-      (line) =>
-        (line.name === 'heart' || line.name === 'head' || line.name === 'life') &&
-        Array.isArray(line.points) &&
-        line.points.length >= 2
-    );
-    if (valid.length > 0) {
-      const priority: Record<string, number> = {
-        heart: 0,
-        head: 1,
-        life: 2,
-      };
-      return [...valid].sort(
-        (a, b) => (priority[a.name] ?? 99) - (priority[b.name] ?? 99)
-      );
-    }
+  if (!Array.isArray(palmLines) || palmLines.length === 0) {
+    return [];
   }
 
-  // 2. Fallback: Tự động vẽ 3 đường chỉ tay chuẩn theo giải phẫu bàn tay (Trái / Phải)
-  const isLeft = hand === HandOrientation.LEFT;
+  // CHỈ lấy đúng 3 đường chính: heart, head, life! Tuyệt đối không lấy đường khác
+  const valid = palmLines.filter(
+    (line) =>
+      (line.name === 'heart' || line.name === 'head' || line.name === 'life') &&
+      Array.isArray(line.points) &&
+      line.points.length >= 2
+  );
 
-  return [
-    {
-      name: 'heart',
-      points: isLeft
-        ? [
-            [0.75, 0.44],
-            [0.66, 0.46],
-            [0.56, 0.47],
-            [0.47, 0.45],
-            [0.38, 0.40],
-          ]
-        : [
-            [0.25, 0.44],
-            [0.34, 0.46],
-            [0.44, 0.47],
-            [0.53, 0.45],
-            [0.62, 0.40],
-          ],
-      lengthRel: 0.65,
-      curvature: 0.35,
-      branches: 0,
-    },
-    {
-      name: 'head',
-      points: isLeft
-        ? [
-            [0.35, 0.48],
-            [0.44, 0.51],
-            [0.54, 0.54],
-            [0.64, 0.56],
-            [0.72, 0.58],
-          ]
-        : [
-            [0.65, 0.48],
-            [0.56, 0.51],
-            [0.46, 0.54],
-            [0.36, 0.56],
-            [0.28, 0.58],
-          ],
-      lengthRel: 0.62,
-      curvature: 0.28,
-      branches: 0,
-    },
-    {
-      name: 'life',
-      points: isLeft
-        ? [
-            [0.35, 0.48],
-            [0.40, 0.55],
-            [0.44, 0.63],
-            [0.46, 0.72],
-            [0.47, 0.80],
-          ]
-        : [
-            [0.65, 0.48],
-            [0.60, 0.55],
-            [0.56, 0.63],
-            [0.54, 0.72],
-            [0.53, 0.80],
-          ],
-      lengthRel: 0.72,
-      curvature: 0.55,
-      branches: 0,
-    },
-  ];
+  const priority: Record<string, number> = {
+    heart: 0,
+    head: 1,
+    life: 2,
+  };
+
+  return [...valid].sort(
+    (a, b) => (priority[a.name] ?? 99) - (priority[b.name] ?? 99)
+  );
 }

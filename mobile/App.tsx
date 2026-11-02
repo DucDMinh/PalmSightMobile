@@ -79,7 +79,7 @@ function AppContent() {
         creditBalance={user?.creditBalance ?? null}
         isLogged={isLogged}
         onOpenWallet={() => handleSelectTab('wallet')}
-        onOpenSettings={__DEV__ ? () => setSettingsVisible(true) : undefined}
+        onOpenSettings={() => setSettingsVisible(true)}
         onGoHome={() => handleSelectTab('home')}
         onGoAccount={() => handleSelectTab('account')}
         onGoLogin={handleOpenLogin}
@@ -177,12 +177,10 @@ function AppContent() {
         onClose={() => setChangePasswordVisible(false)}
       />
 
-      {__DEV__ && (
-        <SettingsModal
-          visible={settingsVisible}
-          onClose={() => setSettingsVisible(false)}
-        />
-      )}
+      <SettingsModal
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
+      />
     </SafeAreaView>
   );
 }
