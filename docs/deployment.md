@@ -32,7 +32,7 @@ Cấu hình trong `frontend/vercel.json`. Header bảo mật cũng khai báo ở
 ```json
 {
   "rewrites": [
-    { "source": "/api/v1/:path*", "destination": "https://palmsight-backend.onrender.com/api/v1/:path*" },
+    { "source": "/api/v1/:path*", "destination": "https://palmsightmobile-1.onrender.com/api/v1/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

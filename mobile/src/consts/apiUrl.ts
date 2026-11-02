@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 export const SERVER_URL_STORAGE_KEY = 'palmsight_server_url';
-export const PROD_API_BASE_URL = 'https://palmsight-backend.onrender.com/api/v1';
+export const PROD_API_BASE_URL = 'https://palmsightmobile-1.onrender.com/api/v1';
 
 export function normalizeApiUrl(url: string): string {
   let normalized = url.trim().replace(/\/+$/, '');

@@ -61,7 +61,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleSetRender = () => {
-    setUrlInput('https://palmsight-backend.onrender.com/api/v1');
+    setUrlInput('https://palmsightmobile-1.onrender.com/api/v1');
   };
 
   const handleSetDefaultIp = () => {
@@ -98,7 +98,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               activeOpacity={0.7}
             >
               <Text style={styles.btnShortcutText}>
-                ☁️ Gán Render: palmsight-backend.onrender.com
+                ☁️ Gán Render: palmsightmobile-1.onrender.com
               </Text>
             </TouchableOpacity>
 
