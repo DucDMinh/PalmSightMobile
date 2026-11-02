@@ -790,8 +790,12 @@ export class ReadingsService {
     try {
       const output = await this.aiService.readPalm(base64, options);
       return { ...output, latencyMs: Date.now() - startTime };
-    } catch {
+    } catch (err: any) {
       const latencyMs = Date.now() - startTime;
+      this.logger.error(
+        `AI guest reading failed for readingId=${readingId}: ${err?.message || err}`,
+        err?.stack
+      );
       await this.readingModel.updateOne(
         { _id: readingId },
         {
@@ -805,6 +809,7 @@ export class ReadingsService {
         {
           code: "AI_SERVICE_UNAVAILABLE",
           message: "Hệ thống AI đang bận. Vui lòng thử lại sau ít phút!",
+          details: { error: err?.message || String(err) },
         },
         HttpStatus.BAD_GATEWAY
       );
