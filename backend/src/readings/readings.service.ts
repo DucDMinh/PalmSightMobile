@@ -1,6 +1,5 @@
 import {
   Injectable,
-  Logger,
   Optional,
   HttpException,
   HttpStatus,
@@ -30,7 +29,6 @@ import { User, UserDocument } from "../schemas/user.schema";
 import { GuestTrial, GuestTrialDocument } from "../schemas/guest-trial.schema";
 import { CreditLedgerService } from "../credits/credit-ledger.service";
 import { ImageProcessorService } from "./image-processor.service";
-import { PalmLineOnnxService } from "./palm-line-onnx.service";
 import { CloudinaryService } from "./cloudinary.service";
 import { AiService } from "../ai/ai.service";
 import { truncatePalmResultForGuest } from "./utils/truncate-palm-result.util";
@@ -45,9 +43,7 @@ import {
 
 @Injectable()
 export class ReadingsService {
-  private readonly logger = new Logger(ReadingsService.name);
   private readonly cloudinary: CloudinaryService;
-  private readonly palmLineOnnxService: PalmLineOnnxService;
 
   constructor(
     @InjectModel(Reading.name)
@@ -61,18 +57,15 @@ export class ReadingsService {
     private readonly creditLedgerService: CreditLedgerService,
     private readonly imageProcessorService: ImageProcessorService,
     private readonly aiService: AiService,
-    @Optional() cloudinaryService?: CloudinaryService,
-    @Optional() palmLineOnnxService?: PalmLineOnnxService
+    @Optional() cloudinaryService?: CloudinaryService
   ) {
     this.cloudinary = cloudinaryService ?? new CloudinaryService();
-    this.palmLineOnnxService = palmLineOnnxService ?? new PalmLineOnnxService();
   }
 
   private async uploadReadingAssets(
     readingId: Types.ObjectId,
     mainBuffer: Buffer,
-    annotatedFile?: Express.Multer.File,
-    directAnnotatedBuffer?: Buffer | null
+    annotatedFile?: Express.Multer.File
   ): Promise<{
     imageUrl: string | null;
     imagePublicId: string | null;
@@ -90,17 +83,6 @@ export class ReadingsService {
           await this.imageProcessorService.validateAndProcess(annotatedFile);
         annotatedUploaded = await this.cloudinary.uploadImage(
           processedAnnotated.buffer,
-          {
-            publicId: `reading_${readingId.toString()}_lines`,
-          }
-        );
-      } catch {
-        annotatedUploaded = null;
-      }
-    } else if (directAnnotatedBuffer) {
-      try {
-        annotatedUploaded = await this.cloudinary.uploadImage(
-          directAnnotatedBuffer,
           {
             publicId: `reading_${readingId.toString()}_lines`,
           }
@@ -305,30 +287,10 @@ export class ReadingsService {
         };
       }
 
-      let directAnnotatedBuffer: Buffer | null = null;
-      if (!annotatedFile || !palmLines || palmLines.length === 0) {
-        try {
-          const onnxRes = await this.palmLineOnnxService.extractPalmLinesAndAnnotate(
-            processedImage.buffer
-          );
-          if (onnxRes) {
-            if (!palmLines || palmLines.length === 0) {
-              palmLines = onnxRes.palmLines;
-            }
-            if (!annotatedFile) {
-              directAnnotatedBuffer = onnxRes.annotatedBuffer;
-            }
-          }
-        } catch {
-          // Graceful fallback if ONNX fails
-        }
-      }
-
       const uploadedAssets = await this.uploadReadingAssets(
         readingId,
         processedImage.buffer,
-        annotatedFile,
-        directAnnotatedBuffer
+        annotatedFile
       );
 
       await this.readingModel.updateOne(
@@ -697,7 +659,7 @@ export class ReadingsService {
     isRejected: boolean;
     idempotentReplayed?: boolean;
   }> {
-    let { validated, topics, palmLines } = await this.validateGuestInput(
+    const { validated, topics, palmLines } = await this.validateGuestInput(
       body,
       file,
       idempotencyKey
@@ -742,30 +704,10 @@ export class ReadingsService {
       );
     }
 
-    let directAnnotatedBuffer: Buffer | null = null;
-    if (!annotatedFile || !palmLines || palmLines.length === 0) {
-      try {
-        const onnxRes = await this.palmLineOnnxService.extractPalmLinesAndAnnotate(
-          processedImage.buffer
-        );
-        if (onnxRes) {
-          if (!palmLines || palmLines.length === 0) {
-            palmLines = onnxRes.palmLines;
-          }
-          if (!annotatedFile) {
-            directAnnotatedBuffer = onnxRes.annotatedBuffer;
-          }
-        }
-      } catch {
-        // Graceful fallback if ONNX fails
-      }
-    }
-
     const uploadedAssets = await this.uploadReadingAssets(
       reading._id,
       processedImage.buffer,
-      annotatedFile,
-      directAnnotatedBuffer
+      annotatedFile
     );
 
     return this.persistGuestTrialSuccess(
@@ -792,12 +734,8 @@ export class ReadingsService {
     try {
       const output = await this.aiService.readPalm(base64, options);
       return { ...output, latencyMs: Date.now() - startTime };
-    } catch (err: any) {
+    } catch {
       const latencyMs = Date.now() - startTime;
-      this.logger.error(
-        `AI guest reading failed for readingId=${readingId}: ${err?.message || err}`,
-        err?.stack
-      );
       await this.readingModel.updateOne(
         { _id: readingId },
         {
@@ -811,7 +749,6 @@ export class ReadingsService {
         {
           code: "AI_SERVICE_UNAVAILABLE",
           message: "Hệ thống AI đang bận. Vui lòng thử lại sau ít phút!",
-          details: { error: err?.message || String(err) },
         },
         HttpStatus.BAD_GATEWAY
       );
