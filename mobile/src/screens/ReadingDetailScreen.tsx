@@ -117,9 +117,7 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
     const normY = locationY / height;
 
     // CHỈ so khớp với 3 đường chính: heart, head, life!
-    const validLines = (reading?.palmLines || []).filter(
-      (l) => l.name === 'heart' || l.name === 'head' || l.name === 'life'
-    );
+    const validLines = effectiveLines;
 
     let closestLine: MajorPalmLineKey | null = null;
     let minDistance = 0.18;
@@ -183,8 +181,8 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
   }, [reading?.palmLines, reading?.hand]);
 
   const activeLineSegments = useMemo(() => {
-    if (!activeLine || !reading?.palmLines) return [];
-    const matching = reading.palmLines.filter(
+    if (!activeLine || !effectiveLines || effectiveLines.length === 0) return [];
+    const matching = effectiveLines.filter(
       (l) => l.name === activeLine && Array.isArray(l.points) && l.points.length >= 2
     );
 
@@ -212,7 +210,7 @@ export const ReadingDetailScreen: React.FC<ReadingDetailScreenProps> = ({
         endY: Number(endY.toFixed(2)),
       };
     });
-  }, [activeLine, reading?.palmLines]);
+  }, [activeLine, effectiveLines]);
 
   const activeLineColor = activeLine ? PALM_LINE_COLORS[activeLine] || '#ff2d55' : '#ff2d55';
 

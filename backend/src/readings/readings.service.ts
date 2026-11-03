@@ -675,7 +675,7 @@ export class ReadingsService {
           code: "AI_SERVICE_UNAVAILABLE",
           message: "Hệ thống AI đang bận. Vui lòng thử lại sau ít phút!",
         },
-        HttpStatus.BAD_GATEWAY
+        HttpStatus.SERVICE_UNAVAILABLE
       );
     }
 
@@ -813,7 +813,7 @@ export class ReadingsService {
           message: "Hệ thống AI đang bận. Vui lòng thử lại sau ít phút!",
           details: { error: err?.message || String(err) },
         },
-        HttpStatus.BAD_GATEWAY
+        HttpStatus.SERVICE_UNAVAILABLE
       );
     }
   }

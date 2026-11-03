@@ -380,6 +380,13 @@ export class PalmLineOnnxService {
     palmLines: PalmLineDto[];
     annotatedBuffer: Buffer;
   } | null> {
+    if (process.env.ENABLE_BACKEND_ONNX !== 'true') {
+      this.logger.log(
+        'Backend ONNX processing is disabled (ENABLE_BACKEND_ONNX != true). Preserving server memory; using client/canonical palm lines.'
+      );
+      return null;
+    }
+
     try {
       const session = await this.getSession();
 
