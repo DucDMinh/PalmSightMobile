@@ -95,6 +95,18 @@ export class ReadingsService {
       type: params.imageType || 'image/jpeg',
     } as any);
 
+    if (params.annotatedImageUri) {
+      formData.append('annotatedImage', {
+        uri: params.annotatedImageUri,
+        name: 'annotated.jpg',
+        type: 'image/jpeg',
+      } as any);
+    }
+
+    if (params.palmLines && params.palmLines.length > 0) {
+      formData.append('palmLines', JSON.stringify(params.palmLines));
+    }
+
     const response = await httpService.axios.post<CreateGuestReadingResponseDto>(
       endpoints.READINGS_GUEST_URL,
       formData,
