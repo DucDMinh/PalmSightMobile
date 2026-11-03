@@ -62,6 +62,66 @@ const TYPE_CONFIG: Record<
     isPositive: true,
     icon: '⚙',
   },
+  [CreditTransactionType.STARTER]: {
+    label: 'Tặng tân thủ khởi tạo',
+    isPositive: true,
+    icon: '🎁',
+  },
+  [CreditTransactionType.SINGLE]: {
+    label: 'Khai quẻ xem bói',
+    isPositive: false,
+    icon: '🔮',
+  },
+  [CreditTransactionType.REFUND]: {
+    label: 'Hoàn quẻ bói không hợp lệ',
+    isPositive: true,
+    icon: '↩',
+  },
+  [CreditTransactionType.CHECKIN]: {
+    label: 'Điểm danh hàng ngày',
+    isPositive: true,
+    icon: '📅',
+  },
+  [CreditTransactionType.CHECKIN_MILESTONE]: {
+    label: 'Thưởng mốc điểm danh',
+    isPositive: true,
+    icon: '🏆',
+  },
+  [CreditTransactionType.CHECKIN_RESTORE]: {
+    label: 'Khôi phục chuỗi điểm danh',
+    isPositive: false,
+    icon: '🔄',
+  },
+  [CreditTransactionType.AD_REWARD]: {
+    label: 'Thưởng xem quảng cáo',
+    isPositive: true,
+    icon: '🎬',
+  },
+  [CreditTransactionType.WHEEL]: {
+    label: 'Thưởng vòng quay may mắn',
+    isPositive: true,
+    icon: '🎡',
+  },
+  [CreditTransactionType.WHEEL_SPIN]: {
+    label: 'Quay vòng quay may mắn',
+    isPositive: false,
+    icon: '🎡',
+  },
+  [CreditTransactionType.VIP_DAILY]: {
+    label: 'Quà VIP mỗi ngày',
+    isPositive: true,
+    icon: '👑',
+  },
+  [CreditTransactionType.GUEST_MERGE]: {
+    label: 'Hợp nhất tài khoản khách',
+    isPositive: true,
+    icon: '🔗',
+  },
+  [CreditTransactionType.OPERATOR]: {
+    label: 'Hệ thống điều chỉnh',
+    isPositive: true,
+    icon: '⚙',
+  },
 };
 
 export const WalletScreen: React.FC<WalletScreenProps> = ({

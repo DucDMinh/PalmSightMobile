@@ -19,10 +19,12 @@ import {
   READING_SCHOOL_LIST,
   LIFE_ASPECTS,
   ReadingDto,
+  PalmLineDto,
 } from '@palmsight/shared';
 import { TarotCard } from '../components/TarotCard';
 import { PALMSIGHT_MOBILE_THEME } from '../theme/tokens';
 import readingsService from '../services/readingsService';
+import palmLineInferenceService from '../services/palmLineInferenceService';
 import { useAuth } from '../providers/AuthenticationProvider';
 import { showError } from '../helpers/toast';
 import { CACHED_KEYS } from '../consts/cachedKeys';
@@ -52,9 +54,9 @@ const ASPECT_ICONS: Record<string, string> = {
 };
 
 const ANALYZING_MESSAGES = [
-  'Đang khởi tạo linh thức thị giác AI...',
-  'Đang thấu thị toạ độ 4 đường chỉ tay chính...',
-  'Đang trích xuất cổ thư và soạn bài luận giải...',
+  'Đang khởi tạo linh thức thị giác AI trên thiết bị...',
+  'Đang trích xuất toạ độ 3 đường chỉ tay chính...',
+  'Đang kết nối thần điện và soạn bài luận giải...',
 ];
 
 export const ScanScreen: React.FC<ScanScreenProps> = ({
@@ -264,6 +266,17 @@ export const ScanScreen: React.FC<ScanScreenProps> = ({
     setAnalyzing(true);
     setRejectReason(null);
 
+    // On-Device AI inference: trích xuất toạ độ đường chỉ tay trước khi gửi lên server
+    let extractedPalmLines: PalmLineDto[] | undefined;
+    try {
+      extractedPalmLines = await palmLineInferenceService.runInference(imageUri);
+      if (extractedPalmLines && extractedPalmLines.length > 0) {
+        console.log(`[ScanScreen] On-device ONNX inference thành công: ${extractedPalmLines.length} đường.`);
+      }
+    } catch (inferErr) {
+      console.warn('[ScanScreen] On-device ONNX inference bỏ qua hoặc lỗi, server/canonical fallback:', inferErr);
+    }
+
     const topicsToSend = isAllTopics
       ? undefined
       : [...selectedSections, ...selectedAspects];
@@ -277,6 +290,7 @@ export const ScanScreen: React.FC<ScanScreenProps> = ({
           topics: topicsToSend,
           aiConsent,
           imageUri,
+          palmLines: extractedPalmLines,
         });
 
         refreshProfile();
@@ -299,6 +313,7 @@ export const ScanScreen: React.FC<ScanScreenProps> = ({
           topics: topicsToSend,
           aiConsent,
           imageUri,
+          palmLines: extractedPalmLines,
         });
 
         setAnalyzing(false);

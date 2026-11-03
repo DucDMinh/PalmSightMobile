@@ -139,6 +139,12 @@ export async function createTestApp(
   const app = moduleRef.createNestApplication();
   app.use(cookieParser("ps-guest-trial-test-secret"));
   app.useGlobalFilters(new ApiExceptionFilter());
+  app.use((req: any, _res: any, next: any) => {
+    if (typeof req.url === "string") {
+      req.url = req.url.replace(/^\/v1(\/|\?|$)/, '/api/v1$1');
+    }
+    next();
+  });
   app.setGlobalPrefix("api/v1");
   await app.listen(0);
 
@@ -155,6 +161,7 @@ export async function createTestApp(
     "deleted_identities",
     "readings",
     "guest_trials",
+    "devices",
   ];
   for (const col of collectionNames) {
     try {

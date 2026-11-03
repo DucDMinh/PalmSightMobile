@@ -14,6 +14,13 @@ export interface UserReferralInfoDto {
   enteredCode: string | null;
 }
 
+export interface VipStatusDto {
+  active: boolean;
+  productId: string | null;
+  expiresAt: string | null;
+  willRenew: boolean;
+}
+
 export interface UserDto {
   id: string;
   displayName: string;
@@ -21,11 +28,15 @@ export interface UserDto {
   email: string | null;
   avatarUrl: string | null;
   creditBalance: number;
+  balance?: number;
   referralCode: string;
   referralLink: string;
   hasPassword: boolean;
   providers: AuthProvider[];
   referral: UserReferralInfoDto;
+  vip?: VipStatusDto;
+  billingRef?: string;
+  grantedNow?: number;
 }
 
 export type MeResponseDto = UserDto;

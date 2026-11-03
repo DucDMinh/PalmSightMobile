@@ -133,6 +133,12 @@ async function bootstrap() {
     })
   );
   app.useGlobalFilters(new ApiExceptionFilter());
+  app.use((req: any, _res: any, next: any) => {
+    if (typeof req.url === "string") {
+      req.url = req.url.replace(/^\/v1(\/|\?|$)/, '/api/v1$1');
+    }
+    next();
+  });
   app.setGlobalPrefix("api/v1");
   app.enableShutdownHooks();
 

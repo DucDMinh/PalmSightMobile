@@ -204,3 +204,60 @@ export function getTopicLabel(key: string, school: ReadingSchool): string {
   if (section) return section.label;
   return key;
 }
+
+
+export const MONETIZATION_CONFIG = {
+  APP_NAME: "PalmSight",
+  CORE_ACTION: "reading",
+  CURRENCY: "GEM",
+  PRICE_PER_ACTION: 5,
+  MAX_ACTIONS_PER_TAP: 5,
+  STARTER_GRANT: 5,
+  REWARD_TZ: "Asia/Ho_Chi_Minh",
+  CHECKIN_LADDER: [3, 3, 5, 3, 3, 8, 10],
+  STREAK_LENGTH: 365,
+  MILESTONES: [
+    { day: 30, bonus: 20 },
+    { day: 60, bonus: 30 },
+    { day: 100, bonus: 50 },
+    { day: 180, bonus: 80 },
+    { day: 270, bonus: 100 },
+    { day: 365, bonus: 200 },
+  ],
+  RESTORE_COST_PER_DAY: 10,
+  RESTORE_MAX_MISSED: 3,
+  WHEEL_PRIZES: [2, 3, 5, 10, 20, 50],
+  FREE_SPINS: 1,
+  AD_SPINS: 3,
+  CURRENCY_SPIN_COST: 3,
+  CHECKIN_DOUBLE_CAP: 1,
+  BONUS_AD_AMOUNT: 3,
+  BONUS_AD_CAP: 5,
+  VIP_DAILY: 50,
+  MIN_AD_WATCH_SECONDS: 15,
+  INTERSTITIAL_GAP: 90,
+  ADS_USER_GAP: 30,
+  ADS_USER_DECLINES: 3,
+  PAYWALL_RETURN_AFTER: 10,
+  PAYWALL_CLOSE_DELAY: 1.5,
+  NO_AD_WAIT: 15,
+  VIP_ONLY_FEATURE: "Luận giải nâng cao & Màu chỉ tay",
+  LANGUAGES: ["en", "vi", "id", "hi", "zh", "ru", "ja", "pt", "es"],
+  LEGAL: {
+    privacyUrl: "https://palmsight.app/privacy",
+    termsUrl: "https://palmsight.app/terms",
+  },
+} as const;
+
+export function getRewardDay(
+  date: Date = new Date(),
+  timeZone: string = MONETIZATION_CONFIG.REWARD_TZ
+): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(date);
+}

@@ -22,12 +22,27 @@ export enum ReadingStatus {
 }
 
 export enum CreditTransactionType {
+  // Legacy / Existing types
   SIGNUP_BONUS = "SIGNUP_BONUS",
   REFERRAL_BONUS = "REFERRAL_BONUS",
   REFEREE_BONUS = "REFEREE_BONUS",
   READING_SPEND = "READING_SPEND",
   READING_REFUND = "READING_REFUND",
   ADMIN_ADJUST = "ADMIN_ADJUST",
+
+  // Playbook §2.2 reasons
+  STARTER = "starter",
+  SINGLE = "single",
+  REFUND = "refund",
+  CHECKIN = "checkin",
+  CHECKIN_MILESTONE = "checkin_milestone",
+  CHECKIN_RESTORE = "checkin_restore",
+  AD_REWARD = "ad_reward",
+  WHEEL = "wheel",
+  WHEEL_SPIN = "wheel_spin",
+  VIP_DAILY = "vip_daily",
+  GUEST_MERGE = "guest_merge",
+  OPERATOR = "operator",
 }
 
 export enum ImageQuality {

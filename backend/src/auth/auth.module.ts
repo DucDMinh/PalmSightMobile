@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -50,7 +50,7 @@ import { PasswordService } from './password.service';
       }),
     }),
     MailModule,
-    CreditsModule,
+    forwardRef(() => CreditsModule),
   ],
   controllers: [AuthController],
   providers: [

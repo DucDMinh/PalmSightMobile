@@ -87,6 +87,34 @@ export class User {
   @Prop({ type: Boolean, required: true, default: false })
   referralBlocked: boolean;
 
+  // VIP & Monetization Playbook fields (§2.2, §10)
+  @Prop({ type: Date, default: null })
+  vipExpiresAt?: Date | null;
+
+  @Prop({ type: String, default: null, trim: true })
+  vipProductId?: string | null;
+
+  @Prop({ type: Boolean, default: false })
+  vipWillRenew: boolean;
+
+  @Prop({ type: String, default: null, trim: true })
+  billingRef?: string | null;
+
+  @Prop({ type: Date, default: null })
+  starterGrantedAt?: Date | null;
+
+  @Prop({ type: String, default: null, trim: true })
+  checkinDay?: string | null;
+
+  @Prop({ type: Number, default: 0, min: 0 })
+  checkinStreak: number;
+
+  @Prop({ type: String, default: null, trim: true })
+  lastSpinDay?: string | null;
+
+  @Prop({ type: String, default: null, trim: true })
+  vipDailyDay?: string | null;
+
   createdAt: Date;
   updatedAt: Date;
 

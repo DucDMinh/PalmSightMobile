@@ -5,18 +5,23 @@ import {
   BadRequestException,
   NotFoundException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types, ClientSession, FilterQuery } from "mongoose";
+import * as crypto from "crypto";
 import {
   CreditTransaction,
   CreditTransactionDocument,
 } from "../schemas/credit-transaction.schema";
 import { User, UserDocument } from "../schemas/user.schema";
+import { Device, DeviceDocument } from "../schemas/device.schema";
 import {
   CreditTransactionType,
   CREDIT_AMOUNTS,
+  MONETIZATION_CONFIG,
   CreditTransactionListResponseDto,
   PaginationQueryDto,
+  getRewardDay,
 } from "@palmsight/shared";
 
 export interface RecordCreditTransactionDto {
@@ -29,15 +34,40 @@ export interface RecordCreditTransactionDto {
   note?: string;
 }
 
+export interface CreditDebitOptions {
+  readingId?: Types.ObjectId;
+  referralId?: Types.ObjectId;
+  note?: string;
+  session?: ClientSession;
+}
+
+export interface StarterGrantOptions {
+  deviceId?: string;
+  ip?: string;
+  session?: ClientSession;
+}
+
+export interface StarterGrantResult {
+  granted: boolean;
+  amount: number;
+  reason?: string;
+}
+
 @Injectable()
 export class CreditLedgerService {
   constructor(
     @InjectModel(CreditTransaction.name)
     private readonly creditTransactionModel: Model<CreditTransactionDocument>,
     @InjectModel(User.name)
-    private readonly userModel: Model<UserDocument>
+    private readonly userModel: Model<UserDocument>,
+    @InjectModel(Device.name)
+    private readonly deviceModel: Model<DeviceDocument>,
+    private readonly configService: ConfigService
   ) {}
 
+  /**
+   * Raw record helper (preserves backward compatibility with existing code)
+   */
   async recordWithSession(
     dto: RecordCreditTransactionDto,
     session: ClientSession
@@ -60,108 +90,389 @@ export class CreditLedgerService {
     return record;
   }
 
-  async grantSignupBonus(
+  /**
+   * Atomically credit user balance and record append-only ledger transaction.
+   * Playbook §2.2: Balance never goes negative and always equals the ledger sum.
+   */
+  async credit(
     userId: Types.ObjectId,
-    session: ClientSession
-  ): Promise<CreditTransactionDocument> {
-    const res = await this.userModel.updateOne(
+    amount: number,
+    reason: CreditTransactionType | string,
+    options?: CreditDebitOptions
+  ): Promise<{ balance: number; transaction: CreditTransactionDocument }> {
+    if (!Number.isInteger(amount) || amount <= 0) {
+      throw new BadRequestException("Credit amount must be a positive integer.");
+    }
+
+    const updatedUser = await this.userModel.findOneAndUpdate(
       { _id: userId, deletedAt: null },
-      { $inc: { creditBalance: CREDIT_AMOUNTS.SIGNUP_BONUS } },
-      { session }
+      { $inc: { creditBalance: amount } },
+      { new: true, session: options?.session }
     );
-    if (res.matchedCount !== 1) {
+
+    if (!updatedUser) {
       throw new NotFoundException({
         code: "USER_NOT_FOUND",
         message: "Người dùng không tồn tại.",
       });
     }
 
-    const user = await this.userModel.findById(userId).session(session).lean();
-    return this.recordWithSession(
-      {
-        userId,
-        amount: CREDIT_AMOUNTS.SIGNUP_BONUS,
-        type: CreditTransactionType.SIGNUP_BONUS,
-        balanceAfter: user!.creditBalance,
-      },
-      session
+    const [record] = await this.creditTransactionModel.create(
+      [
+        {
+          userId,
+          amount,
+          type: reason as CreditTransactionType,
+          balanceAfter: updatedUser.creditBalance,
+          readingId: options?.readingId,
+          referralId: options?.referralId,
+          note: options?.note,
+        },
+      ],
+      options?.session ? { session: options.session } : {}
     );
+
+    return {
+      balance: updatedUser.creditBalance,
+      transaction: record,
+    };
   }
 
-  async spendForReading(
+  /**
+   * Atomically debit user balance and record append-only ledger transaction.
+   * Playbook §2.2: Debit requires balance >= amount. Balance never goes negative.
+   */
+  async debit(
     userId: Types.ObjectId,
-    readingId: Types.ObjectId,
-    session: ClientSession
-  ): Promise<CreditTransactionDocument> {
-    const res = await this.userModel.updateOne(
+    amount: number,
+    reason: CreditTransactionType | string,
+    options?: CreditDebitOptions
+  ): Promise<{ balance: number; transaction: CreditTransactionDocument }> {
+    if (!Number.isInteger(amount) || amount <= 0) {
+      throw new BadRequestException("Debit amount must be a positive integer.");
+    }
+
+    const updatedUser = await this.userModel.findOneAndUpdate(
       {
         _id: userId,
         deletedAt: null,
-        creditBalance: { $gte: CREDIT_AMOUNTS.READING_COST },
+        creditBalance: { $gte: amount },
       },
-      { $inc: { creditBalance: -CREDIT_AMOUNTS.READING_COST } },
-      { session }
+      { $inc: { creditBalance: -amount } },
+      { new: true, session: options?.session }
     );
 
-    if (res.matchedCount === 0 || res.modifiedCount === 0) {
-      const user = await this.userModel
-        .findById(userId)
-        .session(session)
+    if (!updatedUser) {
+      const existingUser = await this.userModel
+        .findOne({ _id: userId, deletedAt: null })
+        .session(options?.session || null)
         .lean();
+
+      if (!existingUser) {
+        throw new NotFoundException({
+          code: "USER_NOT_FOUND",
+          message: "Người dùng không tồn tại.",
+        });
+      }
+
       throw new HttpException(
         {
           code: "INSUFFICIENT_CREDITS",
-          message: "Bạn không đủ credits để xem bói.",
+          message: "Bạn không đủ currency để thực hiện thao tác này.",
           details: {
-            required: CREDIT_AMOUNTS.READING_COST,
-            balance: user?.creditBalance ?? 0,
+            required: amount,
+            balance: existingUser.creditBalance ?? 0,
           },
         },
         HttpStatus.PAYMENT_REQUIRED
       );
     }
 
-    const user = await this.userModel.findById(userId).session(session).lean();
-    return this.recordWithSession(
-      {
-        userId,
-        amount: -CREDIT_AMOUNTS.READING_COST,
-        type: CreditTransactionType.READING_SPEND,
-        balanceAfter: user!.creditBalance,
-        readingId,
-      },
-      session
+    const [record] = await this.creditTransactionModel.create(
+      [
+        {
+          userId,
+          amount: -amount,
+          type: reason as CreditTransactionType,
+          balanceAfter: updatedUser.creditBalance,
+          readingId: options?.readingId,
+          referralId: options?.referralId,
+          note: options?.note,
+        },
+      ],
+      options?.session ? { session: options.session } : {}
     );
+
+    return {
+      balance: updatedUser.creditBalance,
+      transaction: record,
+    };
   }
 
+  /**
+   * Atomically refund debited currency back to user balance.
+   */
+  async refund(
+    userId: Types.ObjectId,
+    amount: number,
+    reason: CreditTransactionType | string = CreditTransactionType.REFUND,
+    options?: CreditDebitOptions
+  ): Promise<{ balance: number; transaction: CreditTransactionDocument }> {
+    return this.credit(userId, amount, reason, options);
+  }
+
+  /**
+   * Legacy method for signup bonus.
+   */
+  async grantSignupBonus(
+    userId: Types.ObjectId,
+    session: ClientSession
+  ): Promise<CreditTransactionDocument> {
+    const { transaction } = await this.credit(
+      userId,
+      CREDIT_AMOUNTS.SIGNUP_BONUS,
+      CreditTransactionType.SIGNUP_BONUS,
+      { session }
+    );
+    return transaction;
+  }
+
+  /**
+   * Legacy method for reading spend.
+   */
+  async spendForReading(
+    userId: Types.ObjectId,
+    readingId: Types.ObjectId,
+    session: ClientSession
+  ): Promise<CreditTransactionDocument> {
+    const { transaction } = await this.debit(
+      userId,
+      CREDIT_AMOUNTS.READING_COST,
+      CreditTransactionType.READING_SPEND,
+      { readingId, session }
+    );
+    return transaction;
+  }
+
+  /**
+   * Legacy method for reading refund.
+   */
   async refundReading(
     userId: Types.ObjectId,
     readingId: Types.ObjectId,
     session: ClientSession
   ): Promise<CreditTransactionDocument> {
-    const res = await this.userModel.updateOne(
-      { _id: userId, deletedAt: null },
-      { $inc: { creditBalance: CREDIT_AMOUNTS.READING_COST } },
-      { session }
+    const { transaction } = await this.refund(
+      userId,
+      CREDIT_AMOUNTS.READING_COST,
+      CreditTransactionType.READING_REFUND,
+      { readingId, session }
     );
-    if (res.matchedCount !== 1) {
+    return transaction;
+  }
+
+  /**
+   * Starter grant (§7.1, §10):
+   * One-time per account AND per physical device. Max 5 grants per network per day.
+   */
+  async claimStarterGrant(
+    userId: Types.ObjectId,
+    options?: StarterGrantOptions
+  ): Promise<StarterGrantResult> {
+    const user = await this.userModel
+      .findOne({ _id: userId, deletedAt: null })
+      .session(options?.session || null);
+
+    if (!user) {
       throw new NotFoundException({
         code: "USER_NOT_FOUND",
         message: "Người dùng không tồn tại.",
       });
     }
 
-    const user = await this.userModel.findById(userId).session(session).lean();
-    return this.recordWithSession(
+    if (user.starterGrantedAt) {
+      return { granted: false, amount: 0, reason: "ALREADY_GRANTED_TO_USER" };
+    }
+
+    if (user.referralBlocked) {
+      return { granted: false, amount: 0, reason: "BLOCKED_IDENTITY" };
+    }
+
+    let ipHash: string | undefined;
+    if (options?.ip) {
+      const secret = this.configService.get<string>(
+        "IDENTITY_HASH_SECRET",
+        "palmsight-identity-secret"
+      );
+      ipHash = crypto
+        .createHmac("sha256", secret)
+        .update(options.ip.trim())
+        .digest("hex");
+
+      // Check network rate limit: <= 5 grants per network per reward day
+      const today = getRewardDay();
+      const count = await this.deviceModel.countDocuments({
+        ipHash,
+        starterGranted: true,
+        starterGrantedAt: {
+          $gte: new Date(today + "T00:00:00+07:00"),
+        },
+      });
+
+      if (count >= 5) {
+        return {
+          granted: false,
+          amount: 0,
+          reason: "NETWORK_DAILY_LIMIT_EXCEEDED",
+        };
+      }
+    }
+
+    const now = new Date();
+    let deviceClaimed = false;
+
+    // 1. Atomic claim on device if deviceId provided
+    if (options?.deviceId) {
+      try {
+        const existingDevice = await this.deviceModel
+          .findOne({ deviceId: options.deviceId })
+          .session(options?.session || null);
+
+        if (existingDevice && existingDevice.starterGranted) {
+          return {
+            granted: false,
+            amount: 0,
+            reason: "DEVICE_ALREADY_CLAIMED",
+          };
+        }
+
+        const deviceClaim = await this.deviceModel.findOneAndUpdate(
+          { deviceId: options.deviceId, starterGranted: { $ne: true } },
+          {
+            $set: {
+              starterGranted: true,
+              starterUserId: userId,
+              starterGrantedAt: now,
+              ipHash,
+            },
+          },
+          { upsert: true, new: true, session: options?.session }
+        );
+
+        if (!deviceClaim || !deviceClaim.starterGranted) {
+          return {
+            granted: false,
+            amount: 0,
+            reason: "DEVICE_ALREADY_CLAIMED",
+          };
+        }
+        deviceClaimed = true;
+      } catch (err: any) {
+        if (err.code === 11000) {
+          return {
+            granted: false,
+            amount: 0,
+            reason: "DEVICE_ALREADY_CLAIMED",
+          };
+        }
+        throw err;
+      }
+    }
+
+    // 2. Atomic claim on user
+    const claimedUser = await this.userModel.findOneAndUpdate(
       {
-        userId,
-        amount: CREDIT_AMOUNTS.READING_COST,
-        type: CreditTransactionType.READING_REFUND,
-        balanceAfter: user!.creditBalance,
-        readingId,
+        _id: userId,
+        deletedAt: null,
+        starterGrantedAt: null,
+        referralBlocked: false,
       },
-      session
+      { $set: { starterGrantedAt: now } },
+      { new: true, session: options?.session }
     );
+
+    if (!claimedUser) {
+      if (deviceClaimed && options?.deviceId) {
+        await this.deviceModel.updateOne(
+          { deviceId: options.deviceId, starterUserId: userId },
+          {
+            $set: {
+              starterGranted: false,
+              starterUserId: null,
+              starterGrantedAt: null,
+            },
+          },
+          { session: options?.session }
+        );
+      }
+      return { granted: false, amount: 0, reason: "ALREADY_GRANTED_TO_USER" };
+    }
+
+    const starterAmount = Number(
+      this.configService.get<number>(
+        "STARTER_GRANT",
+        MONETIZATION_CONFIG.STARTER_GRANT
+      )
+    );
+
+    // 3. Perform credit
+    try {
+      await this.credit(userId, starterAmount, CreditTransactionType.STARTER, {
+        note: "Starter Grant",
+        session: options?.session,
+      });
+    } catch (err) {
+      await this.userModel.updateOne(
+        { _id: userId },
+        { $set: { starterGrantedAt: null } },
+        { session: options?.session }
+      );
+      if (deviceClaimed && options?.deviceId) {
+        await this.deviceModel.updateOne(
+          { deviceId: options.deviceId, starterUserId: userId },
+          {
+            $set: {
+              starterGranted: false,
+              starterUserId: null,
+              starterGrantedAt: null,
+            },
+          },
+          { session: options?.session }
+        );
+      }
+      throw err;
+    }
+
+    return { granted: true, amount: starterAmount };
+  }
+
+  /**
+   * Reconcile balance against the ledger sum (§12: Balance always equals ledger sum).
+   */
+  async reconcileBalance(
+    userId: Types.ObjectId
+  ): Promise<{ balance: number; ledgerSum: number; matches: boolean }> {
+    const user = await this.userModel.findById(userId).lean();
+    if (!user) {
+      throw new NotFoundException({
+        code: "USER_NOT_FOUND",
+        message: "Người dùng không tồn tại.",
+      });
+    }
+
+    const [agg] = await this.creditTransactionModel.aggregate([
+      { $match: { userId } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+
+    const ledgerSum = agg?.total ?? 0;
+    const balance = user.creditBalance ?? 0;
+
+    return {
+      balance,
+      ledgerSum,
+      matches: balance === ledgerSum,
+    };
   }
 
   async getTransactions(

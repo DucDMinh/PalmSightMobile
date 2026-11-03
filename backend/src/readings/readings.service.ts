@@ -813,7 +813,7 @@ export class ReadingsService {
           message: "Hệ thống AI đang bận. Vui lòng thử lại sau ít phút!",
           details: { error: err?.message || String(err) },
         },
-        HttpStatus.SERVICE_UNAVAILABLE
+        HttpStatus.BAD_GATEWAY
       );
     }
   }

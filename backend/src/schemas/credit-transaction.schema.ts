@@ -63,14 +63,26 @@ export type CreditTransactionDocument = HydratedDocument<CreditTransaction>;
 export const CreditTransactionSchema =
   SchemaFactory.createForClass(CreditTransaction);
 
-// Indexes according to database-erd.md:
+// Indexes according to database-erd.md & Monetization Playbook:
 // - { userId: 1, _id: -1 }
 CreditTransactionSchema.index({ userId: 1, _id: -1 });
 
-// - { userId: 1, type: 1 } unique, partialFilterExpression: { type: "SIGNUP_BONUS" }
+// - { userId: 1, type: 1 } unique for one-time bonuses
 CreditTransactionSchema.index(
   { userId: 1, type: 1 },
-  { unique: true, partialFilterExpression: { type: 'SIGNUP_BONUS' } },
+  {
+    name: 'idx_user_signup_bonus',
+    unique: true,
+    partialFilterExpression: { type: 'SIGNUP_BONUS' },
+  },
+);
+CreditTransactionSchema.index(
+  { userId: 1, type: 1 },
+  {
+    name: 'idx_user_starter',
+    unique: true,
+    partialFilterExpression: { type: 'starter' },
+  },
 );
 
 // - { readingId: 1, type: 1 } unique, partialFilterExpression: { readingId: { $exists: true } }
