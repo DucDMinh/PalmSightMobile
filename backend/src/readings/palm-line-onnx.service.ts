@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import sharp from 'sharp';
 import type { PalmLineDto, PalmLineName } from '@palmsight/shared';
 
@@ -349,11 +350,7 @@ export class PalmLineOnnxService {
   private async getSession(): Promise<any> {
     if (!this.sessionPromise) {
       this.sessionPromise = (async () => {
-        const modelDir = path.resolve('backend/models');
-        if (!fs.existsSync(modelDir)) {
-          fs.mkdirSync(modelDir, { recursive: true });
-        }
-        const modelPath = path.join(modelDir, 'palm_lines.onnx');
+        const modelPath = path.join(os.tmpdir(), 'palm_lines.onnx');
 
         if (!fs.existsSync(modelPath) || fs.statSync(modelPath).size < 90_000_000) {
           this.logger.log(`Downloading ONNX model from Cloudflare R2...`);

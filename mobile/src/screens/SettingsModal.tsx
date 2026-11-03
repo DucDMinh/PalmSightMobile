@@ -56,6 +56,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const handleSetRender = () => {
+    setUrlInput('https://palmsightmobile-1.onrender.com/api/v1');
+  };
+
   const handleSetDefaultIp = () => {
     setUrlInput('http://192.168.88.165:4000/api/v1');
   };
@@ -72,7 +76,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <Text style={styles.badgeTop}>✦ THIẾT LẬP MÁY CHỦ API ✦</Text>
           <Text style={styles.modalTitle}>Cấu Hình Máy Chủ</Text>
           <Text style={styles.modalDesc}>
-            Nhập URL Backend NestJS. Khi kiểm thử trên điện thoại thật qua Expo Go, hãy dùng địa chỉ IP nội bộ máy tính hoặc liên kết ngrok.
+            Nhập URL Backend NestJS. Mặc định kết nối Cloud Render hoặc địa chỉ máy tính khi dev.
           </Text>
 
           <TextInput
@@ -83,15 +87,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             autoCorrect={false}
           />
 
-          <TouchableOpacity
-            style={styles.btnShortcut}
-            onPress={handleSetDefaultIp}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.btnShortcutText}>
-              💡 Gán IP máy tính: 192.168.88.165:4000
-            </Text>
-          </TouchableOpacity>
+          <View style={{ gap: 6, marginVertical: 8 }}>
+            <TouchableOpacity
+              style={styles.btnShortcut}
+              onPress={handleSetRender}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.btnShortcutText}>
+                ☁️ Render Cloud: palmsightmobile-1.onrender.com
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.btnShortcut}
+              onPress={handleSetDefaultIp}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.btnShortcutText}>
+                💡 Gán IP máy tính: 192.168.88.165:4000
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           <MysticButton
             title="Kiểm tra kết nối (Ping)"

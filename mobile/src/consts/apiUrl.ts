@@ -3,18 +3,16 @@ import * as SecureStore from 'expo-secure-store';
 
 export const SERVER_URL_STORAGE_KEY = 'palmsight_server_url';
 
-export const DEFAULT_API_BASE_URL = Platform.select({
-  android: 'http://10.0.2.2:4000/api/v1',
-  ios: 'http://localhost:4000/api/v1',
-  default: 'http://localhost:4000/api/v1',
-});
+export const PRODUCTION_API_BASE_URL = 'https://palmsightmobile-1.onrender.com/api/v1';
+
+export const DEFAULT_API_BASE_URL = PRODUCTION_API_BASE_URL;
 
 let currentBaseUrl = DEFAULT_API_BASE_URL;
 
 export function normalizeApiUrl(url: string): string {
   let normalized = url.trim().replace(/\/+$/, '');
   if (!/^https?:\/\//i.test(normalized)) {
-    normalized = `http://${normalized}`;
+    normalized = `https://${normalized}`;
   }
   if (!/\/api\/v1$/i.test(normalized)) {
     normalized = `${normalized}/api/v1`;
@@ -23,6 +21,9 @@ export function normalizeApiUrl(url: string): string {
 }
 
 export function getApiBaseUrl(): string {
+  if (!__DEV__) {
+    return PRODUCTION_API_BASE_URL;
+  }
   return currentBaseUrl;
 }
 
@@ -35,6 +36,10 @@ export async function setApiBaseUrl(url: string): Promise<string> {
 }
 
 export async function initApiBaseUrl(): Promise<string> {
+  if (!__DEV__) {
+    currentBaseUrl = PRODUCTION_API_BASE_URL;
+    return PRODUCTION_API_BASE_URL;
+  }
   try {
     const saved = await SecureStore.getItemAsync(SERVER_URL_STORAGE_KEY);
     if (saved) {

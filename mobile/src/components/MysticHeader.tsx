@@ -100,16 +100,18 @@ export const MysticHeader: React.FC<MysticHeaderProps> = ({
           </>
         )}
 
-        <TouchableOpacity
-          style={styles.settingsBtn}
-          onPress={onOpenSettings}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Cài đặt"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.settingsIcon}>⚙</Text>
-        </TouchableOpacity>
+        {__DEV__ && (
+          <TouchableOpacity
+            style={styles.settingsBtn}
+            onPress={onOpenSettings}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Cài đặt API"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.settingsIcon}>⚙</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
